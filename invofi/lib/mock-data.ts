@@ -1,0 +1,104 @@
+import type { Invoice } from "./types"
+
+export const mockInvoices: Invoice[] = [
+  {
+    id: "inv_1",
+    invoiceNumber: "INV-2025-001",
+    client: "Acme Corp",
+    amount: 5000,
+    issueDate: "2025-04-15",
+    dueDate: "2025-05-15",
+    status: "draft",
+    riskScore: 25,
+    items: [
+      {
+        description: "Web Development Services",
+        quantity: 1,
+        unitPrice: 5000,
+      },
+    ],
+    paymentTerms: 30,
+    vatRate: 20,
+  },
+  {
+    id: "inv_2",
+    invoiceNumber: "INV-2025-002",
+    client: "TechStart GmbH",
+    amount: 12500,
+    issueDate: "2025-04-10",
+    dueDate: "2025-06-09",
+    status: "pending",
+    riskScore: 45,
+    items: [
+      {
+        description: "Software License - Enterprise",
+        quantity: 5,
+        unitPrice: 2500,
+      },
+    ],
+    paymentTerms: 60,
+    vatRate: 20,
+  },
+  {
+    id: "inv_3",
+    invoiceNumber: "INV-2025-003",
+    client: "Global Logistics SA",
+    amount: 8750,
+    issueDate: "2025-03-25",
+    dueDate: "2025-04-24",
+    status: "tokenized",
+    riskScore: 15,
+    items: [
+      {
+        description: "Consulting Services",
+        quantity: 25,
+        unitPrice: 350,
+      },
+    ],
+    paymentTerms: 30,
+    vatRate: 20,
+  },
+  {
+    id: "inv_4",
+    invoiceNumber: "INV-2025-004",
+    client: "Retail Solutions Inc",
+    amount: 3200,
+    issueDate: "2025-03-15",
+    dueDate: "2025-04-14",
+    status: "paid",
+    riskScore: 10,
+    items: [
+      {
+        description: "UI/UX Design",
+        quantity: 1,
+        unitPrice: 3200,
+      },
+    ],
+    paymentTerms: 30,
+    vatRate: 20,
+  },
+  {
+    id: "inv_5",
+    invoiceNumber: "INV-2025-005",
+    client: "EuroBank AG",
+    amount: 22000,
+    issueDate: "2025-04-01",
+    dueDate: "2025-06-30",
+    status: "tokenized",
+    riskScore: 65,
+    items: [
+      {
+        description: "Security Audit",
+        quantity: 1,
+        unitPrice: 15000,
+      },
+      {
+        description: "Penetration Testing",
+        quantity: 1,
+        unitPrice: 7000,
+      },
+    ],
+    paymentTerms: 90,
+    vatRate: 20,
+  },
+]
