@@ -4,12 +4,13 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useToast } from "@/components/ui/use-toast"
 import { Connection, PublicKey } from "@solana/web3.js"
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom"
+import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare"
 import { getSolanaConnection } from "@/lib/solana-config"
 
 interface WalletContextType {
   isConnected: boolean
   address: string | null
-  connect: () => Promise<void>
+  connect: (walletType: 'phantom' | 'solflare') => Promise<void>
   disconnect: () => void
   connection: Connection | null
 }
@@ -19,14 +20,17 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false)
   const [address, setAddress] = useState<string | null>(null)
-  const [wallet, setWallet] = useState<PhantomWalletAdapter | null>(null)
+  const [phantomWallet, setPhantomWallet] = useState<PhantomWalletAdapter | null>(null)
+  const [solflareWallet, setSolflareWallet] = useState<SolflareWalletAdapter | null>(null)
   const [connection, setConnection] = useState<Connection | null>(null)
   const { toast } = useToast()
 
-  // Initialize wallet adapter and connection
+  // Initialize wallet adapters and connection
   useEffect(() => {
-    const phantomWallet = new PhantomWalletAdapter()
-    setWallet(phantomWallet)
+    const phantom = new PhantomWalletAdapter()
+    const solflare = new SolflareWalletAdapter()
+    setPhantomWallet(phantom)
+    setSolflareWallet(solflare)
     setConnection(getSolanaConnection())
   }, [])
 
@@ -44,8 +48,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const connect = async () => {
+  const connect = async (walletType: 'phantom' | 'solflare') => {
     try {
+      const wallet = walletType === 'phantom' ? phantomWallet : solflareWallet
       if (!wallet) {
         throw new Error("Wallet adapter not initialized")
       }
@@ -71,12 +76,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setAddress(publicKey.toString())
         localStorage.setItem("invofi_wallet", JSON.stringify({ 
           address: publicKey.toString(),
-          signature: Array.from(signature)
+          signature: Array.from(signature),
+          walletType
         }))
 
         toast({
           title: "Wallet Connected",
-          description: "Your wallet has been successfully connected.",
+          description: `Your ${walletType} wallet has been successfully connected.`,
         })
 
         return Promise.resolve()
@@ -104,8 +110,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }
 
   const disconnect = () => {
-    if (wallet) {
-      wallet.disconnect()
+    if (phantomWallet) {
+      phantomWallet.disconnect()
+    }
+    if (solflareWallet) {
+      solflareWallet.disconnect()
     }
     setIsConnected(false)
     setAddress(null)

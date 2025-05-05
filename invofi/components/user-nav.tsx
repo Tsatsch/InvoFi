@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/context/auth-context"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export function UserNav() {
   const { user, logout } = useAuth()
@@ -26,21 +27,24 @@ export function UserNav() {
 
   if (!user) return null
 
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : "U"
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button 
+          variant="ghost" 
+          className="relative h-9 w-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 transition-all duration-200"
+        >
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.image || ""} alt={user.name || "User"} />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80">
+              <Image
+                src="/dashboard-icon.svg"
+                alt="Dashboard"
+                width={20}
+                height={20}
+                className="text-white"
+              />
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
