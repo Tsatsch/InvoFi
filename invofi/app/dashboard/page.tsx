@@ -10,6 +10,8 @@ import { ExternalLink, Copy, ArrowUpRight, ArrowDownLeft } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { getSolanaConnection } from "@/lib/solana-config"
+import { DashboardStats } from "@/components/dashboard-stats"
+import { mockInvoices } from "@/lib/mock-data"
 
 interface Transaction {
   signature: string
@@ -98,7 +100,8 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="space-y-8">
+        {/* Wallet Section */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -110,7 +113,7 @@ export default function DashboardPage() {
                 <AvatarFallback>User</AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle>Wallet Dashboard</CardTitle>
+                <CardTitle>User Dashboard</CardTitle>
                 <CardDescription>Manage your wallet and transactions</CardDescription>
               </div>
             </div>
@@ -184,7 +187,7 @@ export default function DashboardPage() {
                     {isLoading ? (
                       <p className="text-sm text-muted-foreground">Loading balance...</p>
                     ) : (
-                      <p className="text-2xl font-bold">{balance.toFixed(4)} SOL</p>
+                      <p className="text-2xl font-bold">{balance.toFixed(2)} SOL</p>
                     )}
                   </CardContent>
                 </Card>
@@ -192,6 +195,12 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Invoice Stats Section */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Invoice Overview</h2>
+          <DashboardStats invoices={mockInvoices} isLoading={isLoading} />
+        </div>
       </div>
     </div>
   )
