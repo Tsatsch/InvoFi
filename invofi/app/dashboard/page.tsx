@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { InvoiceList } from "@/components/invoice-list"
 import { DashboardStats } from "@/components/dashboard-stats"
-import { WalletConnect } from "@/components/wallet-connect"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { mockInvoices } from "@/lib/mock-data"
@@ -23,13 +22,13 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("all")
 
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!user) {
-      router.push("/auth/login")
+    // Redirect to home if not authenticated
+    if (!user || !isConnected) {
+      router.push("/")
     }
-  }, [user, router])
+  }, [user, isConnected, router])
 
-  if (!user) {
+  if (!user || !isConnected) {
     return null // Will redirect in useEffect
   }
 
@@ -72,48 +71,19 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {!isConnected && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Connect Your Wallet</CardTitle>
-            <CardDescription>Connect your wallet to tokenize invoices and access financing</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <WalletConnect />
-          </CardContent>
-        </Card>
-      )}
+      <DashboardStats />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <DashboardStats invoices={invoices} />
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Invoices</CardTitle>
-          <CardDescription>Manage and track all your invoices</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5 mb-4">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="draft">Draft</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="tokenized">Tokenized</TabsTrigger>
-              <TabsTrigger value="paid">Paid</TabsTrigger>
-            </TabsList>
-            <TabsContent value={activeTab}>
-              <InvoiceList invoices={filteredInvoices} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" size="sm">
-            Export
-          </Button>
-          <div className="text-sm text-muted-foreground">Showing {filteredInvoices.length} invoices</div>
-        </CardFooter>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="tokenized">Tokenized</TabsTrigger>
+          <TabsTrigger value="paid">Paid</TabsTrigger>
+        </TabsList>
+        <TabsContent value={activeTab} className="mt-4">
+          <InvoiceList invoices={filteredInvoices} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

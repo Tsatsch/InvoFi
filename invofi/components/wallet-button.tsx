@@ -55,19 +55,25 @@ export function WalletButton() {
 
   const viewOnExplorer = () => {
     if (address) {
-      window.open(`https://etherscan.io/address/${address}`, "_blank")
+      window.open(`https://solscan.io/account/${address}`, "_blank")
     }
   }
 
-  const truncateAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  const truncateAddress = (addr: string | null) => {
+    if (!addr) return ""
+    return `${addr.slice(0, 4)}...${addr.slice(-4)}`
   }
 
   if (!isConnected) {
     return (
-      <Button size="sm" onClick={handleConnect} disabled={isConnecting}>
-        <Wallet className="h-4 w-4 mr-2" />
-        {isConnecting ? "Connecting..." : "Connect Wallet"}
+      <Button 
+        size="sm" 
+        className="bg-primary text-primary-foreground hover:bg-primary/90"
+        onClick={handleConnect} 
+        disabled={isConnecting}
+      >
+        <Wallet className="h-4 w-4" />
+        {isConnecting ? "Connecting..." : "Connect"}
       </Button>
     )
   }
@@ -75,26 +81,29 @@ export function WalletButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="text-xs">
-          <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-          {address ? truncateAddress(address) : "Connected"}
+        <Button 
+          size="sm" 
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Wallet className="h-4 w-4 mr-1" />
+          {truncateAddress(address)}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Wallet</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Connected Wallet</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={copyAddress}>
           <Copy className="mr-2 h-4 w-4" />
-          Copy Address
+          <span>Copy Address</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={viewOnExplorer}>
           <ExternalLink className="mr-2 h-4 w-4" />
-          View on Explorer
+          <span>View on Solscan</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleDisconnect}>
           <LogOut className="mr-2 h-4 w-4" />
-          Disconnect
+          <span>Disconnect</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

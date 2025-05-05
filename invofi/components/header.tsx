@@ -51,23 +51,8 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-2">
-          {user ? (
-            <>
-              <WalletButton />
-              <UserNav />
-            </>
-          ) : (
-            <>
-              <Link href="/auth/login" className="hidden sm:block">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/auth/register" className="hidden sm:block">
-                <Button size="sm">Sign Up</Button>
-              </Link>
-            </>
-          )}
+          <WalletButton />
+          {user && <UserNav />}
           <ModeToggle />
 
           <Sheet>
@@ -93,18 +78,6 @@ export default function Header() {
                     {item.name}
                   </Link>
                 ))}
-                {!user && (
-                  <>
-                    <Link href="/auth/login">
-                      <Button variant="outline" className="w-full">
-                        Sign In
-                      </Button>
-                    </Link>
-                    <Link href="/auth/register">
-                      <Button className="w-full">Sign Up</Button>
-                    </Link>
-                  </>
-                )}
               </div>
             </SheetContent>
           </Sheet>

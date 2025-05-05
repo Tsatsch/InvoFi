@@ -41,13 +41,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <AuthProvider>
-            <WalletProvider>
+          <WalletProvider>
+            <AuthProvider>
               <Header />
               <main className="min-h-screen bg-background">{children}</main>
               <Toaster />
-            </WalletProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>

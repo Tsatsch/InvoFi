@@ -2,15 +2,16 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import { useAuth } from "./auth-context"
+import { Connection, PublicKey } from "@solana/web3.js"
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom"
+import { getSolanaConnection } from "@/lib/solana-config"
 
 interface WalletContextType {
   isConnected: boolean
   address: string | null
   connect: () => Promise<void>
   disconnect: () => void
-  createWallet: () => Promise<void>
-  importWallet: (privateKey: string) => Promise<void>
+  connection: Connection | null
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -18,8 +19,16 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false)
   const [address, setAddress] = useState<string | null>(null)
+  const [wallet, setWallet] = useState<PhantomWalletAdapter | null>(null)
+  const [connection, setConnection] = useState<Connection | null>(null)
   const { toast } = useToast()
-  const { user } = useAuth()
+
+  // Initialize wallet adapter and connection
+  useEffect(() => {
+    const phantomWallet = new PhantomWalletAdapter()
+    setWallet(phantomWallet)
+    setConnection(getSolanaConnection())
+  }, [])
 
   // Check for existing wallet connection on mount
   useEffect(() => {
@@ -35,115 +44,82 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Reset wallet when user changes
-  useEffect(() => {
-    if (!user) {
-      disconnect()
-    }
-  }, [user])
-
   const connect = async () => {
     try {
-      // Mock wallet connection
-      // In a real app, this would use MetaMask or WalletConnect
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!wallet) {
+        throw new Error("Wallet adapter not initialized")
+      }
 
-      // Generate a mock Ethereum address
-      const mockAddress = "0x" + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
+      await wallet.connect()
+      const publicKey = wallet.publicKey
+      if (!publicKey) {
+        throw new Error("Failed to get public key")
+      }
 
-      setIsConnected(true)
-      setAddress(mockAddress)
-      localStorage.setItem("invofi_wallet", JSON.stringify({ address: mockAddress }))
+      // Verify wallet ownership by signing a message
+      const message = "Sign this message to verify your wallet ownership"
+      const encodedMessage = new TextEncoder().encode(message)
+      
+      try {
+        const signature = await wallet.signMessage(encodedMessage)
+        
+        if (!signature) {
+          throw new Error("Failed to sign message")
+        }
 
-      toast({
-        title: "Wallet Connected",
-        description: "Your wallet has been successfully connected.",
-      })
+        setIsConnected(true)
+        setAddress(publicKey.toString())
+        localStorage.setItem("invofi_wallet", JSON.stringify({ 
+          address: publicKey.toString(),
+          signature: Array.from(signature)
+        }))
 
-      return Promise.resolve()
+        toast({
+          title: "Wallet Connected",
+          description: "Your wallet has been successfully connected.",
+        })
+
+        return Promise.resolve()
+      } catch (signError) {
+        // If user cancels the signature, silently disconnect
+        await wallet.disconnect()
+        return Promise.resolve()
+      }
     } catch (error) {
       console.error("Wallet connection failed:", error)
-      toast({
-        title: "Connection Failed",
-        description: "Could not connect to wallet. Please try again.",
-        variant: "destructive",
-      })
+      setIsConnected(false)
+      setAddress(null)
+      localStorage.removeItem("invofi_wallet")
+      
+      // Only show error for actual connection failures, not for cancelled signatures
+      if (!(error instanceof Error && error.message === "Signature request was cancelled")) {
+        toast({
+          title: "Connection Failed",
+          description: "Could not connect to wallet. Please try again.",
+          variant: "destructive",
+        })
+      }
       return Promise.reject(error)
     }
   }
 
   const disconnect = () => {
+    if (wallet) {
+      wallet.disconnect()
+    }
     setIsConnected(false)
     setAddress(null)
     localStorage.removeItem("invofi_wallet")
   }
 
-  const createWallet = async () => {
-    try {
-      // Mock wallet creation
-      // In a real app, this would use ethers.js or Web3Auth
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Generate a mock Ethereum address
-      const mockAddress = "0x" + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
-
-      setIsConnected(true)
-      setAddress(mockAddress)
-      localStorage.setItem("invofi_wallet", JSON.stringify({ address: mockAddress }))
-
-      toast({
-        title: "Wallet Created",
-        description: "Your new wallet has been created and connected.",
-      })
-
-      return Promise.resolve()
-    } catch (error) {
-      console.error("Wallet creation failed:", error)
-      toast({
-        title: "Creation Failed",
-        description: "Could not create a new wallet. Please try again.",
-        variant: "destructive",
-      })
-      return Promise.reject(error)
-    }
-  }
-
-  const importWallet = async (privateKey: string) => {
-    try {
-      // Mock wallet import
-      // In a real app, this would use ethers.js
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      if (!privateKey || privateKey.length < 10) {
-        throw new Error("Invalid private key")
-      }
-
-      // Generate a mock Ethereum address
-      const mockAddress = "0x" + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
-
-      setIsConnected(true)
-      setAddress(mockAddress)
-      localStorage.setItem("invofi_wallet", JSON.stringify({ address: mockAddress }))
-
-      toast({
-        title: "Wallet Imported",
-        description: "Your wallet has been imported and connected.",
-      })
-
-      return Promise.resolve()
-    } catch (error) {
-      console.error("Wallet import failed:", error)
-      toast({
-        title: "Import Failed",
-        description: "Could not import wallet. Please check your private key and try again.",
-        variant: "destructive",
-      })
-      return Promise.reject(error)
-    }
-  }
-
   return (
-    <WalletContext.Provider value={{ isConnected, address, connect, disconnect, createWallet, importWallet }}>
+    <WalletContext.Provider value={{ 
+      isConnected, 
+      address, 
+      connect, 
+      disconnect,
+      connection
+    }}>
       {children}
     </WalletContext.Provider>
   )
