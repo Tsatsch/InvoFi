@@ -1,5 +1,5 @@
 import { format } from "date-fns"
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 
 interface InvoiceItem {
   description: string
@@ -16,13 +16,17 @@ interface InvoiceData {
   senderAddress: string
   senderEmail: string
   senderPhone: string
+  senderVatId: string
+  senderRegNumber: string
   recipientName: string
   recipientCompany: string
   recipientAddress: string
   recipientEmail: string
+  recipientVatId: string
   items: InvoiceItem[]
   bankName: string
   accountNumber: string
+  bicSwift: string
   taxRate: number
   notes: string
 }
@@ -36,99 +40,103 @@ interface InvoicePreviewProps {
 
 export function InvoicePreview({ invoiceData, subtotal, tax, total }: InvoicePreviewProps) {
   return (
-    <Card className="p-8 border shadow-sm">
-      <div className="flex justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">INVOICE</h1>
-          <p className="text-muted-foreground"># {invoiceData.invoiceNumber || "INV-001"}</p>
+    <Card className="w-full max-w-4xl mx-auto p-8">
+      <CardHeader className="space-y-4">
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-black">{invoiceData.senderCompany || "Your Company Name"}</h1>
+            <p className="text-sm text-muted-foreground">{invoiceData.senderAddress || "Your Address"}</p>
+            <p className="text-sm text-muted-foreground">VAT ID: {invoiceData.senderVatId || "VAT ID"}</p>
+            <p className="text-sm text-muted-foreground">Registration Number: {invoiceData.senderRegNumber || "Reg. No."}</p>
+            <p className="text-sm text-muted-foreground">Email: {invoiceData.senderEmail}</p>
+            <p className="text-sm text-muted-foreground">Phone: {invoiceData.senderPhone}</p>
+          </div>
+          <div className="text-right space-y-2">
+            <h2 className="text-xl font-bold text-black">TAX INVOICE</h2>
+            <p className="text-sm text-muted-foreground">Invoice No: {invoiceData.invoiceNumber || "INV-001"}</p>
+            <p className="text-sm text-muted-foreground">Date: {new Date(invoiceData.issueDate).toLocaleDateString('en-GB')}</p>
+            <p className="text-sm text-muted-foreground">Due Date: {new Date(invoiceData.dueDate).toLocaleDateString('en-GB')}</p>
+          </div>
         </div>
-        <div className="text-right">
-          <h2 className="font-bold">{invoiceData.senderCompany || "Your Company Name"}</h2>
-          <p className="whitespace-pre-line text-sm text-muted-foreground">
-            {invoiceData.senderAddress || "Your Address\nCity, Country"}
-          </p>
-        </div>
-      </div>
+      </CardHeader>
 
-      <div className="grid grid-cols-2 gap-8 mb-8">
-        <div>
-          <h3 className="text-sm font-medium mb-1">Bill To:</h3>
-          <p className="font-medium">{invoiceData.recipientCompany || "Client Company"}</p>
+      <CardContent className="space-y-8">
+        <div className="space-y-2">
+          <h3 className="text-sm font-bold text-black">Bill To:</h3>
+          <p className="text-sm">{invoiceData.recipientCompany || "Client Company"}</p>
           <p className="text-sm">{invoiceData.recipientName || "Client Name"}</p>
-          <p className="whitespace-pre-line text-sm text-muted-foreground">
-            {invoiceData.recipientAddress || "Client Address\nCity, Country"}
-          </p>
-          <p className="text-sm text-muted-foreground">{invoiceData.recipientEmail || "client@example.com"}</p>
+          <p className="text-sm text-muted-foreground">{invoiceData.recipientAddress || "Client Address"}</p>
+          <p className="text-sm text-muted-foreground">VAT ID: {invoiceData.recipientVatId || "VAT ID"}</p>
+          <p className="text-sm text-muted-foreground">Email: {invoiceData.recipientEmail}</p>
         </div>
 
-        <div className="text-right">
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Invoice Date:</span>
-              <span className="text-sm">
-                {invoiceData.issueDate ? format(invoiceData.issueDate, "PPP") : "May 3, 2025"}
-              </span>
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2 text-sm font-bold text-black">Description</th>
+                <th className="text-right p-2 text-sm font-bold text-black">Quantity</th>
+                <th className="text-right p-2 text-sm font-bold text-black">Unit Price</th>
+                <th className="text-right p-2 text-sm font-bold text-black">VAT Rate</th>
+                <th className="text-right p-2 text-sm font-bold text-black">VAT Amount</th>
+                <th className="text-right p-2 text-sm font-bold text-black">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoiceData.items.map((item, index) => {
+                const total = item.quantity * item.unitPrice;
+                const vatAmount = total * (invoiceData.taxRate / 100);
+                return (
+                  <tr key={index} className="border-b">
+                    <td className="p-2 text-sm">{item.description || "Item description"}</td>
+                    <td className="p-2 text-sm text-right">{item.quantity}</td>
+                    <td className="p-2 text-sm text-right">€{item.unitPrice.toFixed(2)}</td>
+                    <td className="p-2 text-sm text-right">{invoiceData.taxRate}%</td>
+                    <td className="p-2 text-sm text-right">€{vatAmount.toFixed(2)}</td>
+                    <td className="p-2 text-sm text-right">€{total.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end space-x-4">
+          <div className="text-right space-y-2">
+            <p className="text-sm text-muted-foreground">Subtotal: €{subtotal.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground">VAT ({invoiceData.taxRate}%): €{tax.toFixed(2)}</p>
+            <p className="text-sm font-bold text-black">Total: €{total.toFixed(2)}</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-bold text-black">Payment Details:</h3>
+            <p className="text-sm">{invoiceData.bankName}</p>
+            <p className="text-sm">{invoiceData.accountNumber}</p>
+            <p className="text-sm">BIC/SWIFT: {invoiceData.bicSwift || "BIC/SWIFT"}</p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-bold text-black">Terms and Conditions:</h3>
+            <p className="text-sm text-muted-foreground">1. Payment is due within 30 days of invoice date.</p>
+            <p className="text-sm text-muted-foreground">2. Late payments are subject to interest charges.</p>
+            <p className="text-sm text-muted-foreground">3. All amounts are in EUR.</p>
+          </div>
+
+          {invoiceData.notes && (
+            <div>
+              <h3 className="text-sm font-bold text-black">Notes:</h3>
+              <p className="text-sm text-muted-foreground">{invoiceData.notes}</p>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Due Date:</span>
-              <span className="text-sm">
-                {invoiceData.dueDate ? format(invoiceData.dueDate, "PPP") : "June 2, 2025"}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+      </CardContent>
 
-      <table className="w-full mb-8">
-        <thead>
-          <tr className="border-b">
-            <th className="py-2 text-left">Description</th>
-            <th className="py-2 text-right">Qty</th>
-            <th className="py-2 text-right">Unit Price</th>
-            <th className="py-2 text-right">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoiceData.items.map((item, index) => (
-            <tr key={index} className="border-b border-muted">
-              <td className="py-3">{item.description || "Item description"}</td>
-              <td className="py-3 text-right">{item.quantity}</td>
-              <td className="py-3 text-right">${item.unitPrice.toFixed(2)}</td>
-              <td className="py-3 text-right">${(item.quantity * item.unitPrice).toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="flex justify-end mb-8">
-        <div className="w-1/3">
-          <div className="flex justify-between py-1">
-            <span className="text-muted-foreground">Subtotal:</span>
-            <span>${subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between py-1">
-            <span className="text-muted-foreground">Tax ({invoiceData.taxRate}%):</span>
-            <span>${tax.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between py-1 font-bold border-t">
-            <span>Total:</span>
-            <span>${total.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-8">
-        <div>
-          <h3 className="text-sm font-medium mb-1">Payment Details:</h3>
-          <p className="text-sm">Bank: {invoiceData.bankName || "Bank Name"}</p>
-          <p className="text-sm">Account: {invoiceData.accountNumber || "XXXX-XXXX-XXXX-XXXX"}</p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-medium mb-1">Notes:</h3>
-          <p className="text-sm text-muted-foreground">{invoiceData.notes || "Thank you for your business."}</p>
-        </div>
-      </div>
+      <CardFooter className="text-xs text-muted-foreground">
+        <p>This is a legally binding invoice. Please retain for your records.</p>
+        <p className="text-right">Generated on: {new Date().toLocaleDateString('en-GB')}</p>
+      </CardFooter>
     </Card>
   )
 }

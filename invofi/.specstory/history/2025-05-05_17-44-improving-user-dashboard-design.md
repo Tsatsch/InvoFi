@@ -613,7 +613,114 @@ cool lets switch the wallet info and invoices data position. invoices should be 
 
 _**Assistant**_
 
+I'll modify the dashboard layout to show the wallet information first, followed by the invoice statistics.
 
+
+---
+
+
+
+---
+
+I apologize for the confusion with the apply model. Let me try again with a more specific edit:
+
+
+---
+
+```diff
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-8">
+-         {/* Invoice Stats Section */}
+-         <div>
+-           <h2 className="text-2xl font-bold mb-4">Invoice Overview</h2>
+-           <DashboardStats invoices={mockInvoices} isLoading={isLoading} />
+-         </div>
+- 
+          {/* Wallet Section */}
+          <Card>
+```
+
+```diff
+            </CardContent>
+          </Card>
++ 
++         {/* Invoice Stats Section */}
++         <div>
++           <h2 className="text-2xl font-bold mb-4">Invoice Overview</h2>
++           <DashboardStats invoices={mockInvoices} isLoading={isLoading} />
++         </div>
+        </div>
+      </div>
+```
+
+---
+
+I've successfully reordered the sections in the dashboard. Now:
+
+1. The Wallet Dashboard section appears first, showing:
+   - Wallet address with copy and explorer links
+   - Recent activity (transactions)
+   - Current SOL balance
+
+2. The Invoice Overview section appears below, showing:
+   - All 8 invoice statistics cards
+   - The same loading state as the wallet section
+
+The layout maintains the same spacing and styling, just with the sections in the order you requested. Would you like me to make any other adjustments to the layout or content?
+
+---
+
+_**User**_
+
+i see that we are not using the rpc url here, where do we get the wallet data?
+
+---
+
+_**Assistant**_
+
+Great question! In your `app/dashboard/page.tsx`, the wallet data (balance and transactions) is fetched using the `connection` object from your custom `useWallet` context:
+
+```ts
+const { address, isConnected, connection } = useWallet()
+```
+
+### Where does the RPC URL come from?
+
+- The `connection` object is an instance of `@solana/web3.js`'s `Connection` class.
+- The actual RPC URL is set when this `Connection` is created, which is likely handled inside your `useWallet` context or a related provider.
+- You also import `getSolanaConnection` from `@/lib/solana-config`, but it is not used directly in this file.
+
+### How is wallet data fetched?
+
+- **Balance:**  
+  ```ts
+  const balance = await connection.getBalance(publicKey)
+  ```
+- **Transactions:**  
+  ```ts
+  const signatures = await connection.getSignaturesForAddress(publicKey, { limit: 3 })
+  const txDetails = await Promise.all(
+    signatures.map(async (sig) => {
+      const tx = await connection.getTransaction(sig.signature)
+      // ...
+    })
+  )
+  ```
+
+All of these use the `connection` object, which is configured elsewhere in your app.
+
+---
+
+## To see or change the RPC URL
+
+You should look at the implementation of your wallet context/provider, or the `getSolanaConnection` function in `@/lib/solana-config`. That’s where the RPC URL is set.
+
+Would you like to:
+- See how the RPC URL is set in your project?
+- Change the RPC URL for your Solana connection?
+- Display the current RPC endpoint on the dashboard?
+
+Let me know what you’d like to do next!
 
 ---
 

@@ -12,6 +12,7 @@ import { InvoicePreview } from "@/components/invoice-preview"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Download } from "lucide-react"
+import { api } from '@/lib/api'
 
 export default function CreateInvoicePage() {
   const [activeTab, setActiveTab] = useState("details")
@@ -88,9 +89,13 @@ export default function CreateInvoicePage() {
     setActiveTab("preview")
   }
 
-  const handleDownload = () => {
-    // Implement download functionality
-    alert("Invoice download functionality would be implemented here")
+  const handleDownload = async () => {
+    try {
+      await api.generateInvoice(invoiceData);
+    } catch (error) {
+      console.error('Failed to generate invoice:', error);
+      // You might want to show an error message to the user here
+    }
   }
 
   const handleTokenize = () => {

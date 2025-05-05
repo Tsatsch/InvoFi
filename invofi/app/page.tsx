@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { api, Invoice } from '@/lib/api';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -5,6 +9,40 @@ import { ArrowRight, FileText, Upload, Wallet, BarChart3, Clock } from "lucide-r
 import { HeroSection } from "@/components/hero-section"
 
 export default function Home() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const data = await api.getInvoices();
+        setInvoices(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch invoices');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  const handleDownload = async (id: string) => {
+    try {
+      const response = await api.downloadInvoice(id);
+      // For now, we'll just log the download URL
+      console.log('Download URL:', response.downloadUrl);
+      // In a real app, you might want to open this URL in a new tab
+      window.open(response.downloadUrl, '_blank');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download invoice');
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
   return (
     <div className="container mx-auto px-4 py-6">
       <HeroSection />
@@ -124,6 +162,25 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <main className="p-8">
+        <h1 className="text-2xl font-bold mb-4">Invoices</h1>
+        <div className="space-y-4">
+          {invoices.map((invoice) => (
+            <div key={invoice.id} className="border p-4 rounded-lg">
+              <h2 className="text-xl font-semibold">{invoice.name}</h2>
+              <p>Amount: ${invoice.amount}</p>
+              <p>Date: {invoice.date}</p>
+              <button
+                onClick={() => handleDownload(invoice.id)}
+                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
+      </main>
     </div>
   )
 }
