@@ -1,3 +1,3 @@
-pub mod initialize;
+pub mod mint_invoice_nft;
 
-pub use initialize::*;
+pub use mint_invoice_nft::*;
