@@ -19,9 +19,9 @@ export default function Header() {
 
   const navItems = [
     { name: "Home", href: "/" },
+    { name: "About", href: "/about" },
     { name: "Create Invoice", href: "/invoice/create" },
-    { name: "Tokenize Invoice", href: "/invoice/tokenize" },
-    ...(user ? [{ name: "Dashboard", href: "/dashboard" }] : []),
+    { name: "Tokenize Invoice", href: "/invoice/tokenize" }
   ]
 
   return (
@@ -29,7 +29,10 @@ export default function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
           <Link href="/" className="font-bold text-xl flex items-center mr-6">
-            <span className="text-primary">Invo</span>Fi
+            <img src="/invofi.svg" alt="InvoFi Logo" className="h-8 w-auto" />
+            <span className="ml-2 hidden sm:inline">
+              <span className="text-primary">Invo</span>Fi
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-1">
@@ -51,23 +54,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-2">
-          {user ? (
-            <>
-              <WalletButton />
-              <UserNav />
-            </>
-          ) : (
-            <>
-              <Link href="/auth/login" className="hidden sm:block">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/auth/register" className="hidden sm:block">
-                <Button size="sm">Sign Up</Button>
-              </Link>
-            </>
-          )}
+          <WalletButton />
           <ModeToggle />
 
           <Sheet>
@@ -93,18 +80,6 @@ export default function Header() {
                     {item.name}
                   </Link>
                 ))}
-                {!user && (
-                  <>
-                    <Link href="/auth/login">
-                      <Button variant="outline" className="w-full">
-                        Sign In
-                      </Button>
-                    </Link>
-                    <Link href="/auth/register">
-                      <Button className="w-full">Sign Up</Button>
-                    </Link>
-                  </>
-                )}
               </div>
             </SheetContent>
           </Sheet>

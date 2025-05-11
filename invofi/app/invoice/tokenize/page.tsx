@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,12 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, FileText, Upload, Wallet } from "lucide-react"
+import { useWallet } from "@/context/wallet-context"
+import { WalletButton } from "@/components/wallet-button"
 
 export default function TokenizeInvoicePage() {
   const [activeTab, setActiveTab] = useState("upload")
   const [isUploaded, setIsUploaded] = useState(false)
-  const [isWalletConnected, setIsWalletConnected] = useState(false)
   const [recipientEmail, setRecipientEmail] = useState("")
+  const { isConnected, address } = useWallet()
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -25,14 +27,14 @@ export default function TokenizeInvoicePage() {
     }
   }
 
-  const handleConnectWallet = () => {
-    // This would be replaced with actual wallet connection logic
-    setIsWalletConnected(true)
-  }
-
   const handleSendForApproval = () => {
     // This would send the invoice to the counterparty for approval
     alert(`Approval request would be sent to ${recipientEmail}`)
+  }
+
+  const truncateAddress = (addr: string | null) => {
+    if (!addr) return ""
+    return `${addr.slice(0, 4)}...${addr.slice(-4)}`
   }
 
   return (
@@ -45,7 +47,7 @@ export default function TokenizeInvoicePage() {
           <TabsTrigger value="connect" disabled={!isUploaded}>
             Connect Wallet
           </TabsTrigger>
-          <TabsTrigger value="approve" disabled={!isUploaded || !isWalletConnected}>
+          <TabsTrigger value="approve" disabled={!isUploaded || !isConnected}>
             Get Approval
           </TabsTrigger>
         </TabsList>
@@ -123,16 +125,14 @@ export default function TokenizeInvoicePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="border rounded-lg p-8 text-center space-y-4">
-                {isWalletConnected ? (
+                {isConnected ? (
                   <div className="space-y-2">
                     <div className="flex justify-center">
                       <Wallet className="h-12 w-12 text-primary" />
                     </div>
                     <h3 className="font-medium">Wallet Connected</h3>
-                    <p className="text-sm">0x1a2b3c4d5e6f7g8h9i0j...</p>
-                    <Button variant="outline" size="sm" onClick={() => setIsWalletConnected(false)}>
-                      Disconnect
-                    </Button>
+                    <p className="text-sm">{truncateAddress(address)}</p>
+                    <WalletButton />
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -143,7 +143,7 @@ export default function TokenizeInvoicePage() {
                     <p className="text-sm text-muted-foreground">
                       You need to connect a blockchain wallet to tokenize your invoice
                     </p>
-                    <Button onClick={handleConnectWallet}>Connect Wallet</Button>
+                    <WalletButton />
                   </div>
                 )}
               </div>
@@ -164,7 +164,7 @@ export default function TokenizeInvoicePage() {
               <Button variant="ghost" onClick={() => setActiveTab("upload")}>
                 Back
               </Button>
-              <Button onClick={() => setActiveTab("approve")} disabled={!isWalletConnected}>
+              <Button onClick={() => setActiveTab("approve")} disabled={!isConnected}>
                 Continue
               </Button>
             </CardFooter>

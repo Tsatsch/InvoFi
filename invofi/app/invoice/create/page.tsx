@@ -12,10 +12,13 @@ import { InvoicePreview } from "@/components/invoice-preview"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Download } from "lucide-react"
+import { api } from '@/lib/api'
+import type { InvoiceData, InvoiceItem } from '@/components/invoice-preview'
 
 export default function CreateInvoicePage() {
   const [activeTab, setActiveTab] = useState("details")
-  const [invoiceData, setInvoiceData] = useState({
+  const [error, setError] = useState<string | null>(null)
+  const [invoiceData, setInvoiceData] = useState<InvoiceData>({
     invoiceNumber: "",
     issueDate: new Date(),
     dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
@@ -26,12 +29,15 @@ export default function CreateInvoicePage() {
     senderAddress: "",
     senderEmail: "",
     senderPhone: "",
+    senderVatId: "",
+    senderRegNumber: "",
 
     // Recipient details
     recipientName: "",
     recipientCompany: "",
     recipientAddress: "",
     recipientEmail: "",
+    recipientVatId: "",
 
     // Invoice items
     items: [{ description: "", quantity: 1, unitPrice: 0 }],
@@ -39,22 +45,23 @@ export default function CreateInvoicePage() {
     // Payment details
     bankName: "",
     accountNumber: "",
+    bicSwift: "",
     taxRate: 20,
     notes: "",
   })
 
   const handleInputChange = (field: string, value: any) => {
-    setInvoiceData((prev) => ({ ...prev, [field]: value }))
+    setInvoiceData((prev: InvoiceData) => ({ ...prev, [field]: value }))
   }
 
   const handleItemChange = (index: number, field: string, value: any) => {
     const updatedItems = [...invoiceData.items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
-    setInvoiceData((prev) => ({ ...prev, items: updatedItems }))
+    setInvoiceData((prev: InvoiceData) => ({ ...prev, items: updatedItems }))
   }
 
   const addItem = () => {
-    setInvoiceData((prev) => ({
+    setInvoiceData((prev: InvoiceData) => ({
       ...prev,
       items: [...prev.items, { description: "", quantity: 1, unitPrice: 0 }],
     }))
@@ -64,12 +71,12 @@ export default function CreateInvoicePage() {
     if (invoiceData.items.length > 1) {
       const updatedItems = [...invoiceData.items]
       updatedItems.splice(index, 1)
-      setInvoiceData((prev) => ({ ...prev, items: updatedItems }))
+      setInvoiceData((prev: InvoiceData) => ({ ...prev, items: updatedItems }))
     }
   }
 
   const calculateSubtotal = () => {
-    return invoiceData.items.reduce((sum, item) => {
+    return invoiceData.items.reduce((sum: number, item: InvoiceItem) => {
       return sum + item.quantity * item.unitPrice
     }, 0)
   }
@@ -88,14 +95,19 @@ export default function CreateInvoicePage() {
     setActiveTab("preview")
   }
 
-  const handleDownload = () => {
-    // Implement download functionality
-    alert("Invoice download functionality would be implemented here")
+  const handleDownload = async () => {
+    try {
+      setError(null);
+      await api.generateInvoice(invoiceData);
+    } catch (error) {
+      console.error('Failed to generate invoice:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate invoice');
+    }
   }
 
   const handleTokenize = () => {
     // Implement tokenization functionality
-    alert("This would redirect to the tokenization flow, requiring wallet connection")
+    alert("Feature is coming soon! Stay tuned!")
   }
 
   return (

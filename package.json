@@ -1,0 +1,19 @@
+{
+  "name": "invofi",
+  "version": "1.0.0",
+  "description": "InvoFi - Invoice Management System",
+  "scripts": {
+    "dev:frontend": "cd invofi && npm run dev",
+    "dev:backend": "cd server && npm run dev",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "build:frontend": "cd invofi && npm run build",
+    "build:backend": "cd server && npm run build",
+    "build": "npm run build:frontend && npm run build:backend",
+    "start:frontend": "cd invofi && npm start",
+    "start:backend": "cd server && npm start",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
