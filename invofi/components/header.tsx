@@ -19,9 +19,9 @@ export default function Header() {
 
   const navItems = [
     { name: "Home", href: "/" },
-    { name: "Create Invoice", href: "/invoice/create" },
-    { name: "Tokenize Invoice", href: "/invoice/tokenize" },
     { name: "About", href: "/about" },
+    { name: "Create Invoice", href: "/invoice/create" },
+    { name: "Tokenize Invoice", href: "/invoice/tokenize" }
   ]
 
   return (
