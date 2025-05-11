@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import Header from "@/components/header"
+import { Footer } from "@/components/Footer"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/context/auth-context"
 import { WalletProvider } from "@/context/wallet-context"
@@ -45,6 +46,7 @@ export default function RootLayout({
             <AuthProvider>
               <Header />
               <main className="min-h-screen bg-background">{children}</main>
+              <Footer />
               <Toaster />
             </AuthProvider>
           </WalletProvider>
