@@ -179,7 +179,162 @@ I see the issue. The cards are shifted to the left because we removed one card f
 
 ---
 
+I've made the following changes:
+1. Removed the `lg:grid-cols-3` since we now only have 2 cards
+2. Changed the `max-w-6xl` to `max-w-4xl` to make the container narrower and better suited for 2 cards
+3. Kept the `md:grid-cols-2` for the two-column layout
 
+The cards should now be properly centered on the page. The layout will be:
+- Single column on mobile (default)
+- Two columns on medium screens and up
+- Centered in the page with a max-width of 4xl (56rem/896px)
+
+Is the layout better now?
+
+---
+
+_**User**_
+
+in tokenization of invoice for the wallet step check if the wallet is already connected and if yes just take the existing connection, if not user like now should click on button to connect
+
+---
+
+_**Assistant**_
+
+I'll help you modify the tokenization page to handle existing wallet connections. Let me check the tokenization page first:
+
+
+---
+
+Read file: invofi/app/invoice/tokenize/page.tsx
+
+---
+
+Let me modify the tokenization page to use the actual wallet connection state and handle existing connections. I'll update the page to use the wallet context:
+
+
+---
+
+```diff
+  import type React from "react"
+  
+- import { useState } from "react"
++ import { useState, useEffect } from "react"
+  import { Button } from "@/components/ui/button"
+  import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+```
+
+```diff
+  import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+  import { AlertCircle, FileText, Upload, Wallet } from "lucide-react"
++ import { useWallet } from "@/context/wallet-context"
++ import { WalletButton } from "@/components/wallet-button"
+  
+  export default function TokenizeInvoicePage() {
+    const [activeTab, setActiveTab] = useState("upload")
+    const [isUploaded, setIsUploaded] = useState(false)
+-   const [isWalletConnected, setIsWalletConnected] = useState(false)
+    const [recipientEmail, setRecipientEmail] = useState("")
++   const { isConnected, address } = useWallet()
+  
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+```
+
+```diff
+      }
+    }
+- 
+-   const handleConnectWallet = () => {
+-     // This would be replaced with actual wallet connection logic
+-     setIsWalletConnected(true)
+-   }
+  
+    const handleSendForApproval = () => {
+      // This would send the invoice to the counterparty for approval
+      alert(`Approval request would be sent to ${recipientEmail}`)
+    }
++ 
++   const truncateAddress = (addr: string | null) => {
++     if (!addr) return ""
++     return `${addr.slice(0, 4)}...${addr.slice(-4)}`
++   }
+  
+    return (
+```
+
+```diff
+              Connect Wallet
+            </TabsTrigger>
+-           <TabsTrigger value="approve" disabled={!isUploaded || !isWalletConnected}>
++           <TabsTrigger value="approve" disabled={!isUploaded || !isConnected}>
+              Get Approval
+            </TabsTrigger>
+```
+
+```diff
+              <CardContent className="space-y-6">
+                <div className="border rounded-lg p-8 text-center space-y-4">
+-                 {isWalletConnected ? (
++                 {isConnected ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-center">
+                        <Wallet className="h-12 w-12 text-primary" />
+                      </div>
+                      <h3 className="font-medium">Wallet Connected</h3>
+-                     <p className="text-sm">0x1a2b3c4d5e6f7g8h9i0j...</p>
+-                     <Button variant="outline" size="sm" onClick={() => setIsWalletConnected(false)}>
+-                       Disconnect
+-                     </Button>
++                     <p className="text-sm">{truncateAddress(address)}</p>
++                     <WalletButton />
+                    </div>
+                  ) : (
+```
+
+```diff
+                        You need to connect a blockchain wallet to tokenize your invoice
+                      </p>
+-                     <Button onClick={handleConnectWallet}>Connect Wallet</Button>
++                     <WalletButton />
+                    </div>
+                  )}
+```
+
+```diff
+                  Back
+                </Button>
+-               <Button onClick={() => setActiveTab("approve")} disabled={!isWalletConnected}>
++               <Button onClick={() => setActiveTab("approve")} disabled={!isConnected}>
+                  Continue
+                </Button>
+```
+
+---
+
+I've made the following changes to the tokenization page:
+
+1. Added the wallet context integration:
+   - Imported `useWallet` hook and `WalletButton` component
+   - Removed the local `isWalletConnected` state
+   - Using `isConnected` and `address` from the wallet context
+
+2. Updated the wallet connection UI:
+   - Replaced the mock wallet connection with the actual `WalletButton` component
+   - Added proper address display with truncation
+   - The wallet button will now show the correct state (connected/disconnected) and handle the connection flow
+
+3. Updated the tab navigation:
+   - The "Get Approval" tab is now disabled based on the actual wallet connection state
+   - The continue button is also disabled based on the actual wallet connection state
+
+Now the page will:
+1. Show the actual wallet connection state
+2. Use the existing wallet connection if one exists
+3. Allow connecting a new wallet if none is connected
+4. Show the actual wallet address when connected
+5. Use the same wallet connection UI as the rest of the application
+
+The changes maintain consistency with the rest of the application's wallet handling while providing a better user experience by not requiring reconnection if a wallet is already connected.
 
 ---
 

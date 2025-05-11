@@ -107,7 +107,7 @@ export default function CreateInvoicePage() {
 
   const handleTokenize = () => {
     // Implement tokenization functionality
-    alert("This would redirect to the tokenization flow, requiring wallet connection")
+    alert("Feature is coming soon! Stay tuned!")
   }
 
   return (
