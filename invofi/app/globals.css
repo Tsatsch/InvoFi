@@ -10,44 +10,44 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 267 83% 55%; /* #7231ea */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --secondary: 199 95% 57%; /* #2ab4f9 */
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --accent: 267 83% 55%; /* #7231ea with opacity */
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 267 83% 55%; /* #7231ea */
     --radius: 0.5rem;
     --success: 142.1 76.2% 36.3%;
     --success-foreground: 355.7 100% 97.3%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 235 100% 11%; /* #06072b */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 235 100% 11%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 235 100% 11%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 267 83% 55%; /* #7231ea */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 199 95% 57%; /* #2ab4f9 */
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 267 83% 55%; /* #7231ea with opacity */
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 267 83% 55%; /* #7231ea */
     --success: 142.1 70.6% 45.3%;
     --success-foreground: 144.9 80.4% 10%;
   }
@@ -65,5 +65,54 @@
 @layer components {
   .badge-success {
     @apply bg-success text-success-foreground hover:bg-success/80;
+  }
+
+  /* Custom styles for combining primary and secondary colors */
+  .card-hover {
+    @apply relative overflow-hidden transition-all duration-300 hover:shadow-lg;
+  }
+
+  .card-hover::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full bg-secondary opacity-0 transition-opacity duration-300;
+  }
+
+  .card-hover:hover::before {
+    @apply opacity-100;
+  }
+
+  .link-underline {
+    @apply relative inline-block;
+  }
+
+  .link-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-secondary transform scale-x-0 transition-transform duration-300 origin-left;
+  }
+
+  .link-underline:hover::after {
+    @apply scale-x-100;
+  }
+
+  .button-gradient {
+    @apply relative overflow-hidden;
+  }
+
+  .button-gradient::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-0 transition-opacity duration-300;
+  }
+
+  .button-gradient:hover::after {
+    @apply opacity-10;
+  }
+
+  .section-border {
+    @apply relative;
+  }
+
+  .section-border::before {
+    content: '';
+    @apply absolute -bottom-4 left-1/2 w-24 h-1 bg-gradient-to-r from-primary via-secondary to-primary transform -translate-x-1/2;
   }
 }

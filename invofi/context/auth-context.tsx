@@ -2,11 +2,19 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useToast } from "@/components/ui/use-toast"
+import { useWallet } from "@/context/wallet-context"
+import { PublicKey } from "@solana/web3.js"
+import { verify } from "@noble/ed25519"
+import { sha512 } from "@noble/hashes/sha512"
+
+// Configure @noble/ed25519 to use @noble/hashes
+import { etc } from "@noble/ed25519"
+etc.sha512Sync = (...m) => sha512(etc.concatBytes(...m))
 
 export interface User {
   id: string
   name: string | null
-  email: string
+  email: string | null
   image: string | null
   companyProfile?: {
     companyName: string
@@ -19,8 +27,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, name: string) => Promise<void>
+  login: (address: string) => Promise<void>
   logout: () => void
   isLoading: boolean
   updateProfile: (profile: Partial<User>) => Promise<void>
@@ -33,13 +40,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+  const { address, isConnected } = useWallet()
 
   // Check for existing session on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("invofi_user")
-    if (storedUser) {
+    const storedWallet = localStorage.getItem("invofi_wallet")
+    
+    if (storedUser && storedWallet) {
       try {
-        setUser(JSON.parse(storedUser))
+        const user = JSON.parse(storedUser)
+        const wallet = JSON.parse(storedWallet)
+        
+        // Verify the stored signature
+        verifySignature(wallet.address, wallet.signature).then((isValid) => {
+          if (isValid) {
+            setUser(user)
+          } else {
+            // Clear invalid session
+            localStorage.removeItem("invofi_user")
+            localStorage.removeItem("invofi_wallet")
+          }
+        })
       } catch (e) {
         console.error("Failed to parse stored user:", e)
       }
@@ -47,17 +69,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  const login = async (email: string, password: string) => {
+  // Auto-login when wallet is connected
+  useEffect(() => {
+    if (isConnected && address && !user) {
+      login(address)
+    }
+  }, [isConnected, address])
+
+  const verifySignature = async (address: string, signature: number[]) => {
+    try {
+      const publicKey = new PublicKey(address)
+      const message = "Sign this message to verify your wallet ownership"
+      const encodedMessage = new TextEncoder().encode(message)
+      
+      // Convert the signature to Uint8Array
+      const signatureBytes = new Uint8Array(signature)
+      
+      // Verify the signature using @noble/ed25519
+      const isValid = await verify(
+        signatureBytes,
+        encodedMessage,
+        publicKey.toBytes()
+      )
+
+      return isValid
+    } catch (error) {
+      console.error("Signature verification failed:", error)
+      return false
+    }
+  }
+
+  const login = async (address: string) => {
     setIsLoading(true)
     try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const storedWallet = localStorage.getItem("invofi_wallet")
+      if (!storedWallet) {
+        throw new Error("No wallet signature found")
+      }
+
+      const wallet = JSON.parse(storedWallet)
+      const isValid = await verifySignature(address, wallet.signature)
+
+      if (!isValid) {
+        throw new Error("Invalid wallet signature")
+      }
 
       // In a real app, this would be a response from your auth API
       const mockUser: User = {
-        id: "user_" + Math.random().toString(36).substring(2, 9),
-        name: email.split("@")[0],
-        email,
+        id: address,
+        name: null,
+        email: null,
         image: null,
         companyProfile: null,
       }
@@ -67,48 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast({
         title: "Login Successful",
-        description: "Welcome back to InvoFi!",
+        description: "Welcome to InvoFi!",
       })
     } catch (error) {
       console.error("Login failed:", error)
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
-        variant: "destructive",
-      })
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const register = async (email: string, password: string, name: string) => {
-    setIsLoading(true)
-    try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // In a real app, this would be a response from your auth API
-      const mockUser: User = {
-        id: "user_" + Math.random().toString(36).substring(2, 9),
-        name,
-        email,
-        image: null,
-        companyProfile: null,
-      }
-
-      setUser(mockUser)
-      localStorage.setItem("invofi_user", JSON.stringify(mockUser))
-
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created. Welcome to InvoFi!",
-      })
-    } catch (error) {
-      console.error("Registration failed:", error)
-      toast({
-        title: "Registration Failed",
-        description: "Could not create your account. Please try again.",
+        description: "Could not authenticate your wallet. Please try again.",
         variant: "destructive",
       })
       throw error
@@ -183,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading, updateProfile, updateCompanyProfile }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, updateProfile, updateCompanyProfile }}>
       {children}
     </AuthContext.Provider>
   )
