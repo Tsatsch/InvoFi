@@ -1,0 +1,29 @@
+{
+  "name": "invo-fi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "ts-mocha -p ./tsconfig.json tests/**/*.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@metaplex-foundation/mpl-core": "^1.4.0",
+    "@metaplex-foundation/umi": "^1.2.0",
+    "@types/node": "^22.15.17"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "chai": "^5.2.0",
+    "mocha": "^11.0.0",
+    "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
