@@ -13,7 +13,7 @@ export default function Home() {
     <div className="container mx-auto px-4 py-6">
       <HeroSection />
 
-      <section className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <section className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         <Card className="border-2 hover:border-primary/50 transition-all">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -56,30 +56,6 @@ export default function Home() {
             <Link href="/invoice/tokenize" className="w-full">
               <Button className="w-full group">
                 Upload Invoice
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-
-        <Card className="border-2 hover:border-primary/50 transition-all">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Dashboard
-            </CardTitle>
-            <CardDescription>Manage your invoices and financing</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              View all your invoices, track payments, and monitor financing options in one place. Requires login to
-              access your personalized dashboard.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Link href="/dashboard" className="w-full">
-              <Button className="w-full group">
-                View Dashboard
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

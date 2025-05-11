@@ -293,3 +293,54 @@ Would you like me to make any adjustments to the styling or wording?
 
 ---
 
+_**User**_
+
+cool, now the issue is that once i am connecting ot my wallet, the dashboard button appears in the navbar, i only want the dashboard button to be in the wallet drop down once its connected
+
+---
+
+_**Assistant**_
+
+I'll help you modify the header to move the dashboard button from the navbar to the wallet dropdown. Let me check the header component first:
+
+
+---
+
+Read file: invofi/components/header.tsx
+
+---
+
+Now let me check the wallet button component to see where we should add the dashboard link:
+
+
+---
+
+Read file: invofi/components/wallet-button.tsx
+
+---
+
+I see that the dashboard link is already in the wallet dropdown menu, but it's also appearing in the navbar. Let's modify the header component to remove the dashboard from the navbar:
+
+
+---
+
+```diff
+      { name: "Create Invoice", href: "/invoice/create" },
+      { name: "Tokenize Invoice", href: "/invoice/tokenize" },
+-     ...(user ? [{ name: "Dashboard", href: "/dashboard" }] : []),
+    ]
+  
+```
+
+---
+
+I've removed the dashboard from the navbar items array. Now the dashboard link will only appear in the wallet dropdown menu when a user is connected. This creates a cleaner navigation experience where:
+
+1. The main navigation shows only the core features (Home, Create Invoice, Tokenize Invoice)
+2. The dashboard is accessible through the wallet dropdown, which makes sense since it's a user-specific feature
+3. The dashboard link in the wallet dropdown is already properly implemented with the correct icon and styling
+
+Would you like me to make any other adjustments to the navigation or wallet dropdown?
+
+---
+
