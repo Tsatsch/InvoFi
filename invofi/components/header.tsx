@@ -21,6 +21,7 @@ export default function Header() {
     { name: "Home", href: "/" },
     { name: "Create Invoice", href: "/invoice/create" },
     { name: "Tokenize Invoice", href: "/invoice/tokenize" },
+    { name: "About", href: "/about" },
   ]
 
   return (
