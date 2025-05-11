@@ -15,20 +15,20 @@ export const metadata: Metadata = {
   description: "Access short-term liquidity by tokenizing your invoices",
   generator: 'v0.dev',
   icons: {
-    icon: '/logo.svg',
-    shortcut: '/logo.svg',
-    apple: '/logo.svg',
+    icon: '/invofi.svg',
+    shortcut: '/invofi.svg',
+    apple: '/invofi.svg',
   },
   openGraph: {
     title: 'InvoFi | Invoice Financing on Blockchain',
     description: 'Access short-term liquidity by tokenizing your invoices',
-    images: ['/logo.svg'],
+    images: ['/invofi.svg'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'InvoFi | Invoice Financing on Blockchain',
     description: 'Access short-term liquidity by tokenizing your invoices',
-    images: ['/logo.svg'],
+    images: ['/invofi.svg'],
   },
 }
 

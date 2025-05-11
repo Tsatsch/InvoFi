@@ -29,7 +29,10 @@ export default function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
           <Link href="/" className="font-bold text-xl flex items-center mr-6">
-            <img src="/logo.svg" alt="InvoFi Logo" className="h-8 w-auto" />
+            <img src="/invofi.svg" alt="InvoFi Logo" className="h-8 w-auto" />
+            <span className="ml-2 hidden sm:inline">
+              <span className="text-primary">Invo</span>Fi
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-1">
