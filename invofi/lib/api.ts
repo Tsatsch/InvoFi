@@ -1,5 +1,3 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 export interface InvoiceItem {
   description: string;
   quantity: number;
@@ -28,7 +26,7 @@ export interface Invoice {
 
 export const api = {
   getInvoices: async (): Promise<Invoice[]> => {
-    const response = await fetch(`${API_URL}/api/invoices`);
+    const response = await fetch('/api/invoices');
     if (!response.ok) {
       throw new Error('Failed to fetch invoices');
     }
@@ -36,7 +34,7 @@ export const api = {
   },
 
   getInvoice: async (id: string): Promise<Invoice> => {
-    const response = await fetch(`${API_URL}/api/invoices/${id}`);
+    const response = await fetch(`/api/invoices/${id}`);
     if (!response.ok) {
       throw new Error('Failed to fetch invoice');
     }
@@ -44,7 +42,7 @@ export const api = {
   },
 
   downloadInvoice: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/api/invoices/${id}/download`);
+    const response = await fetch(`/api/invoices/${id}/download`);
     if (!response.ok) {
       throw new Error('Failed to download invoice');
     }
@@ -70,7 +68,7 @@ export const api = {
   },
 
   generateInvoice: async (invoiceData: Invoice): Promise<void> => {
-    const response = await fetch(`${API_URL}/api/invoices/generate`, {
+    const response = await fetch('/api/invoices/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -79,7 +77,8 @@ export const api = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to generate invoice');
+      const errorData = await response.json();
+      throw new Error(errorData.details || errorData.error || 'Failed to generate invoice');
     }
 
     // Get the filename from the Content-Disposition header
