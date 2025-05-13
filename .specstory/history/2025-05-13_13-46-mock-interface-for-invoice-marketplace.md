@@ -4715,6 +4715,213 @@ Let me update the "How InvoFi Works" section on the main page to better align wi
 
 ---
 
+```diff
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+-             <h3 className="font-medium mb-2">1. Create Invoice</h3>
++             <h3 className="font-medium mb-2">1. Create & Verify</h3>
+              <p className="text-sm text-muted-foreground">
+-               Generate a standardized EU invoice with all required fields.
++               Generate or upload your invoice and get it verified through our fraud-resistant system.
+              </p>
+            </div>
+```
+
+```diff
+                <Wallet className="h-6 w-6 text-primary" />
+              </div>
+-             <h3 className="font-medium mb-2">2. Connect Wallet</h3>
++             <h3 className="font-medium mb-2">2. Tokenize</h3>
+              <p className="text-sm text-muted-foreground">
+-               Connect your non-custodial wallet to securely manage your invoices.
++               Your verified invoice is tokenized as an NFT with built-in verification.
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="bg-primary/10 rounded-full p-4 mb-4">
+-               <Clock className="h-6 w-6 text-primary" />
++               <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+-             <h3 className="font-medium mb-2">3. Get Approval</h3>
++             <h3 className="font-medium mb-2">3. AMM Pricing</h3>
+              <p className="text-sm text-muted-foreground">
+-               Both parties approve the invoice to ensure validity and prevent fraud.
++               The AMM automatically prices your invoice based on risk, term, and market conditions.
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="bg-primary/10 rounded-full p-4 mb-4">
+-               <BarChart3 className="h-6 w-6 text-primary" />
++               <Store className="h-6 w-6 text-primary" />
+              </div>
+-             <h3 className="font-medium mb-2">4. Access Financing</h3>
++             <h3 className="font-medium mb-2">4. Instant Funding</h3>
+              <p className="text-sm text-muted-foreground">
+-               Receive immediate financing based on your invoice's risk score.
++               Receive immediate financing from the decentralized liquidity pool.
+              </p>
+            </div>
+```
+
+---
+
+I've updated the "How InvoFi Works" section to better reflect the platform's core features and AMM mechanism as described in the readme. The changes include:
+
+1. **Create & Verify**: Emphasizes both invoice creation and the fraud-resistant verification system
+2. **Tokenize**: Highlights the NFT tokenization process with built-in verification
+3. **AMM Pricing**: Explains how the Automated Market Maker automatically prices invoices based on risk, term, and market conditions
+4. **Instant Funding**: Shows how businesses receive immediate financing from the decentralized liquidity pool
+
+The new flow better represents InvoFi's key differentiators:
+- Fraud-resistant verification
+- NFT tokenization
+- AMM-based pricing
+- Decentralized liquidity pools
+- Instant funding
+
+Would you like me to make any adjustments to this updated section?
+
+---
+
+_**User**_
+
+the formatiing of the describtions seem to be odd, we need to make them centrally aligned
+
+---
+
+_**Assistant**_
+
+I'll update the formatting to make the descriptions centrally aligned. I'll modify the text alignment and adjust the spacing for better visual balance.
+
+
+---
+
+```diff
+        <section className="mt-16 text-center max-w-4xl mx-auto">
+          <h2 className="text-2xl font-semibold mb-6">How InvoFi Works</h2>
+-         <div className="grid md:grid-cols-4 gap-8 text-left">
+-           <div className="flex flex-col items-center">
++         <div className="grid md:grid-cols-4 gap-8">
++           <div className="flex flex-col items-center text-center">
+              <div className="bg-primary/10 rounded-full p-4 mb-4">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">1. Create & Verify</h3>
+-             <p className="text-sm text-muted-foreground">
++             <p className="text-sm text-muted-foreground max-w-[200px]">
+                Generate or upload your invoice and get it verified through our fraud-resistant system.
+              </p>
+            </div>
+-           <div className="flex flex-col items-center">
++           <div className="flex flex-col items-center text-center">
+              <div className="bg-primary/10 rounded-full p-4 mb-4">
+                <Wallet className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">2. Tokenize</h3>
+-             <p className="text-sm text-muted-foreground">
++             <p className="text-sm text-muted-foreground max-w-[200px]">
+                Your verified invoice is tokenized as an NFT with built-in verification.
+              </p>
+            </div>
+-           <div className="flex flex-col items-center">
++           <div className="flex flex-col items-center text-center">
+              <div className="bg-primary/10 rounded-full p-4 mb-4">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">3. AMM Pricing</h3>
+-             <p className="text-sm text-muted-foreground">
++             <p className="text-sm text-muted-foreground max-w-[200px]">
+                The AMM automatically prices your invoice based on risk, term, and market conditions.
+              </p>
+            </div>
+-           <div className="flex flex-col items-center">
++           <div className="flex flex-col items-center text-center">
+              <div className="bg-primary/10 rounded-full p-4 mb-4">
+                <Store className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">4. Instant Funding</h3>
+-             <p className="text-sm text-muted-foreground">
++             <p className="text-sm text-muted-foreground max-w-[200px]">
+                Receive immediate financing from the decentralized liquidity pool.
+              </p>
+```
+
+---
+
+I've made the following changes to improve the formatting:
+
+1. Added `text-center` class to each step container to center-align all text
+2. Removed the `text-left` class from the grid container
+3. Added `max-w-[200px]` to each description paragraph to ensure consistent width and better text wrapping
+4. Maintained the existing spacing and icon styling
+
+The changes will:
+- Center-align all text within each step
+- Ensure consistent width for descriptions
+- Keep the icons and headings properly aligned
+- Maintain the overall grid layout and spacing
+
+The descriptions should now be properly centered and have a more balanced appearance. Would you like me to make any additional adjustments to the formatting?
+
+---
+
+_**User**_
+
+cool, now we need to adjust the dashboard of user accordingly, i wan to see his invoices, their financing status, if the financing is done a button to withdraw the money, then his own contribution to liquidity pools, lets renew the whoel dashboard based on new readme and AMM 
+
+---
+
+_**Assistant**_
+
+I'll help you create a comprehensive dashboard that reflects the AMM mechanism and user's activities. Let me first search for the existing dashboard components.
+
+
+---
+
+<details>
+            <summary>Searched codebase "dashboard component or user dashboard page" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `invofi/components/user-nav.tsx` | L1-50 |
+| `invofi/app/dashboard/page.tsx` | L79-120 |
+| `invofi/components/dashboard-stats.tsx` | L52-111 |
+| `invofi/app/dashboard/page.tsx` | L1-21 |
+| `invofi/components/dashboard-stats.tsx` | L1-10 |
+| `invofi/components/dashboard-stats.tsx` | L10-52 |
+| `invofi/components/dashboard-stats.tsx` | L111-144 |
+| `invofi/app/dashboard/page.tsx` | L174-207 |
+| `invofi/app/dashboard/page.tsx` | L120-137 |
+| `invofi/app/dashboard/page.tsx` | L137-174 |
+| `invofi/app/dashboard/page.tsx` | L21-79 |
+| `invofi/components/user-nav.tsx` | L50-72 |
+| `invofi/app/invoice/[id]/page.tsx` | L1-59 |
+| `invofi/app/invoice/[id]/page.tsx` | L89-117 |
+| `invofi/app/profile/company/page.tsx` | L1-58 |
+| `invofi/components/wallet-button.tsx` | L131-183 |
+| `invofi/app/about/page.tsx` | L172-203 |
+| `invofi/components/invoice-marketplace.tsx` | L1-53 |
+| `invofi/components/header.tsx` | L1-26 |
+| `invofi/app/invoice/[id]/page.tsx` | L117-146 |
+| `invofi/components/invoice-list.tsx` | L1-22 |
+| `invofi/components/invoice-marketplace.tsx` | L121-163 |
+| `invofi/app/page.tsx` | L1-39 |
+| `invofi/components/wallet-button.tsx` | L1-69 |
+| `invofi/app/invoice/[id]/page.tsx` | L216-255 |
+
+</details>
+
+---
+
+Let me create a new dashboard that better reflects the AMM mechanism and user's activities. I'll update the dashboard page with new sections for:
+1. User's invoices and their financing status
+2. Liquidity contributions
+3. Available funds to withdraw
+4. AMM-related statistics
+
+
+---
+
 
 
 ---
