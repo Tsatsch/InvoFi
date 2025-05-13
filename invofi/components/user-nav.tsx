@@ -12,12 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/auth-context"
+import { useWallet } from "@/context/wallet-context"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 export function UserNav() {
   const { user, logout } = useAuth()
+  const { address } = useWallet()
   const router = useRouter()
 
   const handleLogout = () => {
