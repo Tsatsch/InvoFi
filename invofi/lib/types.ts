@@ -5,8 +5,9 @@ export interface Invoice {
   amount: number
   issueDate: string
   dueDate: string
-  status: "draft" | "pending" | "tokenized" | "paid"
+  status: "draft" | "pending" | "approved" | "tokenized" | "paid"
   riskScore: number
+  submitterWallet: string
   items: {
     description: string
     quantity: number

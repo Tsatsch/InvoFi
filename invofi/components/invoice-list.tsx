@@ -3,7 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Download, Eye, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Download, Eye, Pencil, Trash2, Wallet } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,18 +16,28 @@ import { formatCurrency } from "@/lib/utils"
 import { RiskBadge } from "@/components/risk-badge"
 import Link from "next/link"
 import type { Invoice } from "@/lib/types"
+import { useWallet } from "@/context/wallet-context"
 
 interface InvoiceListProps {
   invoices: Invoice[]
 }
 
 export function InvoiceList({ invoices }: InvoiceListProps) {
+  const { address } = useWallet()
+  
+  // Filter invoices based on the connected wallet
+  const filteredInvoices = address 
+    ? invoices.filter(inv => inv.submitterWallet.toLowerCase() === address.toLowerCase())
+    : []
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "draft":
         return <Badge variant="outline">Draft</Badge>
       case "pending":
         return <Badge variant="secondary">Pending</Badge>
+      case "approved":
+        return <Badge variant="success">Approved</Badge>
       case "tokenized":
         return <Badge variant="default">Tokenized</Badge>
       case "paid":
@@ -37,7 +47,7 @@ export function InvoiceList({ invoices }: InvoiceListProps) {
     }
   }
 
-  if (invoices.length === 0) {
+  if (filteredInvoices.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No invoices found</p>
@@ -60,7 +70,7 @@ export function InvoiceList({ invoices }: InvoiceListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {invoices.map((invoice) => (
+          {filteredInvoices.map((invoice) => (
             <TableRow key={invoice.id}>
               <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
               <TableCell>{invoice.client}</TableCell>
@@ -105,9 +115,12 @@ export function InvoiceList({ invoices }: InvoiceListProps) {
                         Delete
                       </DropdownMenuItem>
                     )}
-                    {invoice.status === "draft" && (
+                    {invoice.status === "approved" && (
                       <DropdownMenuItem asChild>
-                        <Link href={`/invoice/tokenize/${invoice.id}`}>Tokenize</Link>
+                        <Link href={`/invoice/tokenize/${invoice.id}`}>
+                          <Wallet className="mr-2 h-4 w-4" />
+                          Tokenize
+                        </Link>
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
