@@ -5,7 +5,7 @@ import { api, Invoice } from '@/lib/api';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { ArrowRight, FileText, Upload, Wallet, BarChart3, Clock } from "lucide-react"
+import { ArrowRight, FileText, Upload, Wallet, BarChart3, Clock, Store } from "lucide-react"
 import { HeroSection } from "@/components/hero-section"
 
 export default function Home() {
@@ -13,7 +13,7 @@ export default function Home() {
     <div className="container mx-auto px-4 py-6">
       <HeroSection />
 
-      <section className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <section className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
         <Card className="border-2 hover:border-primary/50 transition-all">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -56,6 +56,29 @@ export default function Home() {
             <Link href="/invoice/tokenize" className="w-full">
               <Button className="w-full group">
                 Upload Invoice
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+
+        <Card className="border-2 hover:border-primary/50 transition-all">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Invoice Marketplace
+            </CardTitle>
+            <CardDescription>Invest in tokenized invoices</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Browse available tokenized invoices and invest in them at discounted rates. Higher risk means higher potential returns.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Link href="/marketplace" className="w-full">
+              <Button className="w-full group">
+                View Marketplace
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

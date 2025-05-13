@@ -21,7 +21,8 @@ export default function Header() {
     { name: "Home", href: "/" },
     { name: "About", href: "/about" },
     { name: "Create Invoice", href: "/invoice/create" },
-    { name: "Tokenize Invoice", href: "/invoice/tokenize" }
+    { name: "Tokenize Invoice", href: "/invoice/tokenize" },
+    { name: "Marketplace", href: "/marketplace", highlight: true }
   ]
 
   return (
@@ -44,6 +45,8 @@ export default function Header() {
                   "px-3 py-2 rounded-md text-sm font-medium transition-colors",
                   pathname === item.href
                     ? "bg-primary/10 text-primary"
+                    : item.highlight
+                    ? "border border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                     : "hover:bg-accent hover:text-accent-foreground",
                 )}
               >
@@ -74,6 +77,8 @@ export default function Header() {
                       "px-3 py-2 rounded-md text-sm font-medium transition-colors",
                       pathname === item.href
                         ? "bg-primary/10 text-primary"
+                        : item.highlight
+                        ? "border border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                         : "hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
