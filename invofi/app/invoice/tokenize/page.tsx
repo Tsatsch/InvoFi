@@ -13,12 +13,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, FileText, Upload, Wallet } from "lucide-react"
 import { useWallet } from "@/context/wallet-context"
 import { WalletButton } from "@/components/wallet-button"
+import { InvoiceVerification } from "@/components/invoice-verification"
+import { useRouter } from "next/navigation"
 
 export default function TokenizeInvoicePage() {
   const [activeTab, setActiveTab] = useState("upload")
   const [isUploaded, setIsUploaded] = useState(false)
   const [recipientEmail, setRecipientEmail] = useState("")
+  const [isVerificationComplete, setIsVerificationComplete] = useState(false)
   const { isConnected, address } = useWallet()
+  const router = useRouter()
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -30,6 +34,15 @@ export default function TokenizeInvoicePage() {
   const handleSendForApproval = () => {
     // This would send the invoice to the counterparty for approval
     alert(`Approval request would be sent to ${recipientEmail}`)
+    setActiveTab("verify")
+  }
+
+  const handleVerificationComplete = () => {
+    setIsVerificationComplete(true)
+  }
+
+  const handleContinue = () => {
+    router.push('/dashboard')
   }
 
   const truncateAddress = (addr: string | null) => {
@@ -42,13 +55,16 @@ export default function TokenizeInvoicePage() {
       <h1 className="text-3xl font-bold mb-6">Tokenize Invoice</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
           <TabsTrigger value="connect" disabled={!isUploaded}>
             Connect Wallet
           </TabsTrigger>
           <TabsTrigger value="approve" disabled={!isUploaded || !isConnected}>
             Get Approval
+          </TabsTrigger>
+          <TabsTrigger value="verify" disabled={!isUploaded || !isConnected}>
+            Verification
           </TabsTrigger>
         </TabsList>
 
@@ -106,10 +122,7 @@ export default function TokenizeInvoicePage() {
                 </AlertDescription>
               </Alert>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={() => window.history.back()}>
-                Cancel
-              </Button>
+            <CardFooter className="flex justify-end">
               <Button onClick={() => setActiveTab("connect")} disabled={!isUploaded}>
                 Continue
               </Button>
@@ -121,49 +134,32 @@ export default function TokenizeInvoicePage() {
           <Card>
             <CardHeader>
               <CardTitle>Connect Your Wallet</CardTitle>
-              <CardDescription>Connect your blockchain wallet to proceed with tokenization</CardDescription>
+              <CardDescription>
+                Connect your wallet to proceed with the tokenization process
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="border rounded-lg p-8 text-center space-y-4">
-                {isConnected ? (
-                  <div className="space-y-2">
-                    <div className="flex justify-center">
-                      <Wallet className="h-12 w-12 text-primary" />
-                    </div>
-                    <h3 className="font-medium">Wallet Connected</h3>
-                    <p className="text-sm">{truncateAddress(address)}</p>
-                    <WalletButton />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-center">
-                      <Wallet className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                    <h3 className="font-medium">Connect Your Wallet</h3>
-                    <p className="text-sm text-muted-foreground">
-                      You need to connect a blockchain wallet to tokenize your invoice
-                    </p>
-                    <WalletButton />
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="font-medium">What happens next?</h3>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                  <li>Your invoice will be prepared for tokenization</li>
-                  <li>The counterparty will need to approve the invoice</li>
-                  <li>Once approved, the invoice will be tokenized on the blockchain</li>
-                  <li>You can then use the tokenized invoice to access financing</li>
-                </ol>
-              </div>
+              {!isConnected ? (
+                <div className="flex flex-col items-center justify-center space-y-4 p-8">
+                  <Wallet className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-center text-muted-foreground">
+                    Connect your wallet to continue with the tokenization process
+                  </p>
+                  <WalletButton />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Wallet Connected</AlertTitle>
+                    <AlertDescription>
+                      Your wallet is connected: {truncateAddress(address)}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={() => setActiveTab("upload")}>
-                Back
-              </Button>
+            <CardFooter className="flex justify-end">
               <Button onClick={() => setActiveTab("approve")} disabled={!isConnected}>
                 Continue
               </Button>
@@ -176,61 +172,55 @@ export default function TokenizeInvoicePage() {
             <CardHeader>
               <CardTitle>Get Counterparty Approval</CardTitle>
               <CardDescription>
-                The invoice needs to be approved by the counterparty before tokenization
+                Send the invoice to the counterparty for approval
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="recipientEmail">Counterparty Email</Label>
+                  <Label htmlFor="recipient-email">Recipient Email</Label>
                   <Input
-                    id="recipientEmail"
+                    id="recipient-email"
                     type="email"
-                    placeholder="client@example.com"
+                    placeholder="counterparty@company.com"
                     value={recipientEmail}
                     onChange={(e) => setRecipientEmail(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    An email will be sent to the counterparty with instructions to review and approve the invoice
-                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="message">Optional Message</Label>
-                  <Input id="message" placeholder="Please review and approve this invoice for tokenization" />
-                </div>
-              </div>
-
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Important</AlertTitle>
-                <AlertDescription>
-                  Both parties must approve the invoice before it can be tokenized. This ensures the validity of the
-                  invoice and prevents fraud.
-                </AlertDescription>
-              </Alert>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="font-medium">Tokenization Process</h3>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                  <li>Send approval request to counterparty</li>
-                  <li>Counterparty reviews and approves the invoice</li>
-                  <li>Smart contract is created for the invoice</li>
-                  <li>Invoice is tokenized on the blockchain</li>
-                  <li>You receive notification when tokenization is complete</li>
-                  <li>You can then use the tokenized invoice for financing</li>
-                </ol>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Note</AlertTitle>
+                  <AlertDescription>
+                    The counterparty will receive an email with a link to approve the invoice. Once approved, the verification process will begin.
+                  </AlertDescription>
+                </Alert>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={() => setActiveTab("connect")}>
-                Back
-              </Button>
+            <CardFooter className="flex justify-end">
               <Button onClick={handleSendForApproval} disabled={!recipientEmail}>
                 Send for Approval
               </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="verify">
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice Verification</CardTitle>
+              <CardDescription>
+                Your invoice is being verified and risk-assessed
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InvoiceVerification onComplete={handleVerificationComplete} />
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              {isVerificationComplete && (
+                <Button onClick={handleContinue}>
+                  Return to Homepage
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </TabsContent>
