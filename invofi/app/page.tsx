@@ -88,41 +88,41 @@ export default function Home() {
 
       <section className="mt-16 text-center max-w-4xl mx-auto">
         <h2 className="text-2xl font-semibold mb-6">How InvoFi Works</h2>
-        <div className="grid md:grid-cols-4 gap-8 text-left">
-          <div className="flex flex-col items-center">
+        <div className="grid md:grid-cols-4 gap-8">
+          <div className="flex flex-col items-center text-center">
             <div className="bg-primary/10 rounded-full p-4 mb-4">
               <FileText className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="font-medium mb-2">1. Create Invoice</h3>
-            <p className="text-sm text-muted-foreground">
-              Generate a standardized EU invoice with all required fields.
+            <h3 className="font-medium mb-2">1. Create & Verify</h3>
+            <p className="text-sm text-muted-foreground max-w-[200px]">
+              Generate or upload your invoice and get it verified through our fraud-resistant system.
             </p>
           </div>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center text-center">
             <div className="bg-primary/10 rounded-full p-4 mb-4">
               <Wallet className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="font-medium mb-2">2. Connect Wallet</h3>
-            <p className="text-sm text-muted-foreground">
-              Connect your non-custodial wallet to securely manage your invoices.
+            <h3 className="font-medium mb-2">2. Tokenize</h3>
+            <p className="text-sm text-muted-foreground max-w-[200px]">
+              Your verified invoice is tokenized as an NFT with built-in verification.
             </p>
           </div>
-          <div className="flex flex-col items-center">
-            <div className="bg-primary/10 rounded-full p-4 mb-4">
-              <Clock className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-medium mb-2">3. Get Approval</h3>
-            <p className="text-sm text-muted-foreground">
-              Both parties approve the invoice to ensure validity and prevent fraud.
-            </p>
-          </div>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center text-center">
             <div className="bg-primary/10 rounded-full p-4 mb-4">
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="font-medium mb-2">4. Access Financing</h3>
-            <p className="text-sm text-muted-foreground">
-              Receive immediate financing based on your invoice's risk score.
+            <h3 className="font-medium mb-2">3. AMM Pricing</h3>
+            <p className="text-sm text-muted-foreground max-w-[200px]">
+              The AMM automatically prices your invoice based on risk, term, and market conditions.
+            </p>
+          </div>
+          <div className="flex flex-col items-center text-center">
+            <div className="bg-primary/10 rounded-full p-4 mb-4">
+              <Store className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="font-medium mb-2">4. Instant Funding</h3>
+            <p className="text-sm text-muted-foreground max-w-[200px]">
+              Receive immediate financing from the decentralized liquidity pool.
             </p>
           </div>
         </div>
