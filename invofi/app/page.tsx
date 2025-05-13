@@ -13,49 +13,24 @@ export default function Home() {
     <div className="container mx-auto px-4 py-6">
       <HeroSection />
 
-      <section className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <section className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
         <Card className="border-2 hover:border-primary/50 transition-all">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Generate Invoice
-            </CardTitle>
-            <CardDescription>Create a standardized EU invoice</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Fill out our invoice template with your business details and invoice information. Generate a professional
-              document ready for download or tokenization.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Link href="/invoice/create" className="w-full">
-              <Button className="w-full group">
-                Create Invoice
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-
-        <Card className="border-2 hover:border-primary/50 transition-all">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
+              <Wallet className="h-5 w-5" />
               Tokenize Invoice
             </CardTitle>
-            <CardDescription>Upload an existing invoice for tokenization</CardDescription>
+            <CardDescription>Create and tokenize your invoice in one seamless flow</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Already have an invoice? Upload it here to start the tokenization process and access immediate financing
-              against your receivables.
+              Create a new invoice and tokenize it in a single process. This ensures your invoice is properly formatted, verified, and ready for financing.
             </p>
           </CardContent>
           <CardFooter>
             <Link href="/invoice/tokenize" className="w-full">
               <Button className="w-full group">
-                Upload Invoice
+                Start Tokenization
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

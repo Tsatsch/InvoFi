@@ -13,14 +13,14 @@ export function HeroSection() {
           days for payment.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/invoice/create">
-            <Button size="lg" variant="outline" className="px-8 border-2 border-primary/80 hover:border-primary hover:bg-primary/5">
-              Create Invoice
-            </Button>
-          </Link>
           <Link href="/invoice/tokenize">
             <Button size="lg" className="px-8">
               Tokenize Invoice
+            </Button>
+          </Link>
+          <Link href="/dashboard">
+            <Button size="lg" variant="outline" className="px-8 border-2 border-primary/80 hover:border-primary hover:bg-primary/5">
+              View Dashboard
             </Button>
           </Link>
         </div>

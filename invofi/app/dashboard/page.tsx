@@ -31,6 +31,16 @@ interface LiquidityContribution {
   returns: number
 }
 
+interface Invoice {
+  id: string
+  amount: number
+  dueDate: string
+  risk: string
+  discount: number
+  status: string
+  submitterWallet: string
+}
+
 export default function DashboardPage() {
   const { address, isConnected, connection } = useWallet()
   const router = useRouter()
@@ -39,6 +49,7 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
+  const [invoices, setInvoices] = useState<Invoice[]>([])
 
   // Mock data for liquidity contributions
   const liquidityContributions: LiquidityContribution[] = [
@@ -57,6 +68,20 @@ export default function DashboardPage() {
       returns: 180
     }
   ]
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      router.push("/")
+      return
+    }
+
+    // Load invoices for the connected wallet
+    const userInvoices = mockInvoices.filter(inv => 
+      inv.submitterWallet && inv.submitterWallet.toLowerCase() === address.toLowerCase()
+    )
+    setInvoices(userInvoices)
+    setIsLoading(false)
+  }, [isConnected, address, router])
 
   useEffect(() => {
     if (!isConnected || !address) {
@@ -238,7 +263,7 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockInvoices.slice(0, 3).map((invoice) => (
+                  {invoices.slice(0, 3).map((invoice) => (
                     <div key={invoice.id} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <div>
                         <p className="font-medium">#{invoice.id}</p>
@@ -292,7 +317,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockInvoices.map((invoice) => (
+                  {invoices.map((invoice) => (
                     <div key={invoice.id} className="p-4 rounded-lg border">
                       <div className="flex items-center justify-between mb-4">
                         <div>
