@@ -677,7 +677,521 @@ undefined
 
 The verification process should only be part of the tokenization flow, which is the correct implementation in `tokenize/page.tsx`. The separate verification page was unnecessary since:
 
-1. The ve
+1. The verification is a step within the tokenization process
+2. Having two different ways to verify invoices could be confusing
+3. The tokenization flow already handles the complete process from upload to verification to dashboard
+
+The flow in `tokenize/page.tsx` is the correct implementation where:
+1. User uploads invoice
+2. Connects wallet
+3. Gets counterparty approval
+4. Goes through verification
+5. Continues to dashboard
+
+Would you like me to make any other adjustments to the tokenization flow?
+
+---
+
+_**User**_
+
+we also need to mock this waiting for approval thing after we sent the email to counterparty
+
+---
+
+_**Assistant**_
+
+I'll modify the tokenization flow to add a waiting state for counterparty approval before proceeding to verification. I'll update the `tokenize/page.tsx` file:
+
+
+---
+
+```diff
+  import { Separator } from "@/components/ui/separator"
+  import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+- import { AlertCircle, FileText, Upload, Wallet } from "lucide-react"
++ import { AlertCircle, FileText, Upload, Wallet, Loader2, CheckCircle2 } from "lucide-react"
+  import { useWallet } from "@/context/wallet-context"
+  import { WalletButton } from "@/components/wallet-button"
+  import { InvoiceVerification } from "@/components/invoice-verification"
+  import { useRouter } from "next/navigation"
++ import { Progress } from "@/components/ui/progress"
+  
+  export default function TokenizeInvoicePage() {
+```
+
+```diff
+    const [recipientEmail, setRecipientEmail] = useState("")
+    const [isVerificationComplete, setIsVerificationComplete] = useState(false)
++   const [isWaitingForApproval, setIsWaitingForApproval] = useState(false)
++   const [approvalProgress, setApprovalProgress] = useState(0)
+    const { isConnected, address } = useWallet()
+    const router = useRouter()
+```
+
+```diff
+      // This would send the invoice to the counterparty for approval
+      alert(`Approval request would be sent to ${recipientEmail}`)
++     setIsWaitingForApproval(true)
++     
++     // Mock the approval process
++     let progress = 0
++     const interval = setInterval(() => {
++       progress += 5
++       setApprovalProgress(progress)
++       
++       if (progress >= 100) {
++         clearInterval(interval)
++         setIsWaitingForApproval(false)
+          setActiveTab("verify")
++       }
++     }, 1000) // Update every second
+    }
+  
+```
+
+```diff
+              </CardHeader>
+              <CardContent className="space-y-6">
++               {isWaitingForApproval ? (
++                 <div className="space-y-6">
++                   <div className="flex items-center space-x-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
++                     <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
++                     <div className="flex-1">
++                       <h3 className="font-medium">Waiting for Counterparty Approval</h3>
++                       <p className="text-sm text-gray-600 dark:text-gray-300">
++                         We've sent an approval request to {recipientEmail}
++                       </p>
++                     </div>
++                   </div>
++                   
++                   <div className="space-y-2">
++                     <div className="flex justify-between text-sm">
++                       <span>Approval Progress</span>
++                       <span>{approvalProgress}%</span>
++                     </div>
++                     <Progress value={approvalProgress} className="h-2" />
++                   </div>
++ 
++                   <Alert>
++                     <AlertCircle className="h-4 w-4" />
++                     <AlertTitle>What's happening?</AlertTitle>
++                     <AlertDescription>
++                       The counterparty will receive an email with a link to review and approve the invoice. 
++                       This is a mock simulation - in production, this would wait for actual approval.
++                     </AlertDescription>
++                   </Alert>
++                 </div>
++               ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+```
+
+```diff
+                    </Alert>
+                  </div>
++               )}
+              </CardContent>
+              <CardFooter className="flex justify-end">
++               {!isWaitingForApproval && (
+                  <Button onClick={handleSendForApproval} disabled={!recipientEmail}>
+                    Send for Approval
+                  </Button>
++               )}
+              </CardFooter>
+            </Card>
+```
+
+```diff
+                {isVerificationComplete && (
+                  <Button onClick={handleContinue}>
+-                   Return to Homepage
++                   Continue to Dashboard
+                  </Button>
+                )}
+```
+
+---
+
+I've updated the tokenization flow to include a waiting state for counterparty approval. Here's what I've added:
+
+1. New state variables:
+   - `isWaitingForApproval`: Tracks if we're waiting for approval
+   - `approvalProgress`: Tracks the progress of the mock approval process
+
+2. Mock approval process:
+   - When "Send for Approval" is clicked, it starts a mock timer
+   - Progress increases by 5% every second
+   - After 20 seconds (when progress reaches 100%), it automatically moves to the verification step
+
+3. UI updates:
+   - Added a loading spinner and status message
+   - Added a progress bar showing the approval progress
+   - Added an informative alert explaining what's happening
+   - Hide the "Send for Approval" button while waiting
+   - Show the recipient's email in the waiting state
+
+The flow now looks like this:
+1. User enters counterparty email
+2. Clicks "Send for Approval"
+3. Sees a waiting screen with progress bar
+4. After 20 seconds (mock), automatically proceeds to verification
+5. Verification process runs
+6. User can continue to dashboard
+
+Would you like me to adjust any part of this implementation, such as:
+1. The timing of the mock approval (currently 20 seconds)
+2. The progress increment (currently 5% per second)
+3. The UI elements or messaging
+4. Add any additional states or transitions?
+
+---
+
+_**User**_
+
+lets do it not with progress bar but with a checkbox and also we need to make sure with which wallet it was approved, it should be showcased
+
+---
+
+_**Assistant**_
+
+I'll modify the approval waiting state to show a checkbox-style approval and include the counterparty's wallet information. I'll update the `tokenize/page.tsx` file:
+
+
+---
+
+```diff
+  import { Separator } from "@/components/ui/separator"
+  import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+- import { AlertCircle, FileText, Upload, Wallet, Loader2, CheckCircle2 } from "lucide-react"
++ import { AlertCircle, FileText, Upload, Wallet, Loader2, CheckCircle2, XCircle } from "lucide-react"
+  import { useWallet } from "@/context/wallet-context"
+  import { WalletButton } from "@/components/wallet-button"
+  import { InvoiceVerification } from "@/components/invoice-verification"
+  import { useRouter } from "next/navigation"
+- import { Progress } from "@/components/ui/progress"
++ import { cn } from "@/lib/utils"
++ 
++ // Mock counterparty wallet address
++ const MOCK_COUNTERPARTY_WALLET = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
++ 
++ interface ApprovalStep {
++   id: string;
++   name: string;
++   status: 'pending' | 'completed' | 'failed';
++   details?: string;
++ }
+  
+  export default function TokenizeInvoicePage() {
+```
+
+```diff
+    const [isVerificationComplete, setIsVerificationComplete] = useState(false)
+    const [isWaitingForApproval, setIsWaitingForApproval] = useState(false)
+-   const [approvalProgress, setApprovalProgress] = useState(0)
++   const [approvalSteps, setApprovalSteps] = useState<ApprovalStep[]>([
++     { id: '1', name: 'Email Sent', status: 'pending' },
++     { id: '2', name: 'Email Opened', status: 'pending' },
++     { id: '3', name: 'Counterparty Connected Wallet', status: 'pending' },
++     { id: '4', name: 'Invoice Approved', status: 'pending' }
++   ])
+    const { isConnected, address } = useWallet()
+    const router = useRouter()
+```
+
+```diff
+      
+      // Mock the approval process
+-     let progress = 0
++     let currentStep = 0
+      const interval = setInterval(() => {
+-       progress += 5
+-       setApprovalProgress(progress)
+-       
+-       if (progress >= 100) {
++       if (currentStep < approvalSteps.length) {
++         setApprovalSteps(prev => prev.map((step, index) => 
++           index === currentStep ? { ...step, status: 'completed' } : step
++         ))
++         currentStep++
++       } else {
+          clearInterval(interval)
+          setIsWaitingForApproval(false)
+          setActiveTab("verify")
+        }
+-     }, 1000) // Update every second
++     }, 3000) // Update every 3 seconds
+    }
+  
+```
+
+```diff
+      return `${addr.slice(0, 4)}...${addr.slice(-4)}`
+    }
++ 
++   const getStepIcon = (status: ApprovalStep['status']) => {
++     switch (status) {
++       case 'completed':
++         return <CheckCircle2 className="h-5 w-5 text-green-500" />
++       case 'failed':
++         return <XCircle className="h-5 w-5 text-red-500" />
++       default:
++         return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
++     }
++   }
+  
+    return (
+```
+
+```diff
+                {isWaitingForApproval ? (
+                  <div className="space-y-6">
+-                   <div className="flex items-center space-x-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+-                     <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
++                   <div className="space-y-4">
++                     {approvalSteps.map((step, index) => (
++                       <div key={step.id} className="flex items-center space-x-4">
++                         {getStepIcon(step.status)}
+                          <div className="flex-1">
+-                       <h3 className="font-medium">Waiting for Counterparty Approval</h3>
+-                       <p className="text-sm text-gray-600 dark:text-gray-300">
+-                         We've sent an approval request to {recipientEmail}
++                           <h3 className={cn(
++                             "font-medium",
++                             step.status === 'completed' && "text-green-600",
++                             step.status === 'failed' && "text-red-600"
++                           )}>
++                             {step.name}
++                           </h3>
++                           {step.name === 'Counterparty Connected Wallet' && step.status === 'completed' && (
++                             <p className="text-sm text-muted-foreground">
++                               Wallet: {truncateAddress(MOCK_COUNTERPARTY_WALLET)}
+                              </p>
++                           )}
+                          </div>
+                        </div>
+-                   
+-                   <div className="space-y-2">
+-                     <div className="flex justify-between text-sm">
+-                       <span>Approval Progress</span>
+-                       <span>{approvalProgress}%</span>
+-                     </div>
+-                     <Progress value={approvalProgress} className="h-2" />
++                     ))}
+                    </div>
+  
+```
+
+---
+
+I've updated the approval process to use a step-by-step checklist instead of a progress bar. Here are the key changes:
+
+1. Added a new `ApprovalStep` interface to define the structure of each step
+2. Created a list of approval steps:
+   - Email Sent
+   - Email Opened
+   - Counterparty Connected Wallet
+   - Invoice Approved
+
+3. Added a mock counterparty wallet address that's displayed when the wallet connection step is completed
+
+4. Changed the UI to show:
+   - Checkbox-style indicators (empty circle → checkmark)
+   - Step names that turn green when completed
+   - The counterparty's wallet address when they connect
+   - Each step updates every 3 seconds (total 12 seconds for all steps)
+
+5. Added visual feedback:
+   - Empty circle for pending steps
+   - Green checkmark for completed steps
+   - Red X for failed steps (though we're not using this in the mock)
+   - Green text for completed steps
+
+The flow now looks like this:
+1. User enters email and clicks "Send for Approval"
+2. Steps appear and update one by one:
+   - Email Sent ✓
+   - Email Opened ✓
+   - Counterparty Connected Wallet ✓ (shows their wallet address)
+   - Invoice Approved ✓
+3. After all steps complete, moves to verification
+
+Would you like me to:
+1. Adjust the timing of the steps (currently 3 seconds each)
+2. Add more steps or details to the process
+3. Change the visual styling of the checkboxes or steps
+4. Add any additional information about the counterparty?
+
+---
+
+_**User**_
+
+no lets do it much easier, just wait for 5 sec and make a check box that the invoice was approved by certain wallet
+
+---
+
+_**Assistant**_
+
+I'll simplify the approval process to just show a single checkbox with the wallet information after a 5-second wait. I'll update the `tokenize/page.tsx` file:
+
+
+---
+
+```diff
+  import { Separator } from "@/components/ui/separator"
+  import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+- import { AlertCircle, FileText, Upload, Wallet, Loader2, CheckCircle2, XCircle } from "lucide-react"
++ import { AlertCircle, FileText, Upload, Wallet, Loader2, CheckCircle2 } from "lucide-react"
+  import { useWallet } from "@/context/wallet-context"
+  import { WalletButton } from "@/components/wallet-button"
+```
+
+```diff
+  // Mock counterparty wallet address
+  const MOCK_COUNTERPARTY_WALLET = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+- 
+- interface ApprovalStep {
+-   id: string;
+-   name: string;
+-   status: 'pending' | 'completed' | 'failed';
+-   details?: string;
+- }
+  
+  export default function TokenizeInvoicePage() {
+```
+
+```diff
+    const [isVerificationComplete, setIsVerificationComplete] = useState(false)
+    const [isWaitingForApproval, setIsWaitingForApproval] = useState(false)
+-   const [approvalSteps, setApprovalSteps] = useState<ApprovalStep[]>([
+-     { id: '1', name: 'Email Sent', status: 'pending' },
+-     { id: '2', name: 'Email Opened', status: 'pending' },
+-     { id: '3', name: 'Counterparty Connected Wallet', status: 'pending' },
+-     { id: '4', name: 'Invoice Approved', status: 'pending' }
+-   ])
++   const [isApproved, setIsApproved] = useState(false)
+    const { isConnected, address } = useWallet()
+    const router = useRouter()
+```
+
+```diff
+      setIsWaitingForApproval(true)
+      
+-     // Mock the approval process
+-     let currentStep = 0
+-     const interval = setInterval(() => {
+-       if (currentStep < approvalSteps.length) {
+-         setApprovalSteps(prev => prev.map((step, index) => 
+-           index === currentStep ? { ...step, status: 'completed' } : step
+-         ))
+-         currentStep++
+-       } else {
+-         clearInterval(interval)
++     // Mock the approval process - wait 5 seconds then show approval
++     setTimeout(() => {
++       setIsApproved(true)
+        setIsWaitingForApproval(false)
+        setActiveTab("verify")
+-       }
+-     }, 3000) // Update every 3 seconds
++     }, 5000)
+    }
+  
+```
+
+```diff
+      return `${addr.slice(0, 4)}...${addr.slice(-4)}`
+    }
+- 
+-   const getStepIcon = (status: ApprovalStep['status']) => {
+-     switch (status) {
+-       case 'completed':
+-         return <CheckCircle2 className="h-5 w-5 text-green-500" />
+-       case 'failed':
+-         return <XCircle className="h-5 w-5 text-red-500" />
+-       default:
+-         return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
+-     }
+-   }
+  
+    return (
+```
+
+```diff
+                {isWaitingForApproval ? (
+                  <div className="space-y-6">
+-                   <div className="space-y-4">
+-                     {approvalSteps.map((step, index) => (
+-                       <div key={step.id} className="flex items-center space-x-4">
+-                         {getStepIcon(step.status)}
++                   <div className="flex items-center space-x-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
++                     <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                      <div className="flex-1">
+-                           <h3 className={cn(
+-                             "font-medium",
+-                             step.status === 'completed' && "text-green-600",
+-                             step.status === 'failed' && "text-red-600"
+-                           )}>
+-                             {step.name}
+-                           </h3>
+-                           {step.name === 'Counterparty Connected Wallet' && step.status === 'completed' && (
+-                             <p className="text-sm text-muted-foreground">
+-                               Wallet: {truncateAddress(MOCK_COUNTERPARTY_WALLET)}
++                       <h3 className="font-medium">Waiting for Counterparty Approval</h3>
++                       <p className="text-sm text-gray-600 dark:text-gray-300">
++                         We've sent an approval request to {recipientEmail}
+                        </p>
+-                           )}
+-                         </div>
+                      </div>
+-                     ))}
+                    </div>
+  
+```
+
+```diff
+              </CardHeader>
+              <CardContent>
++               {isApproved && (
++                 <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
++                   <div className="flex items-center space-x-3">
++                     <CheckCircle2 className="h-5 w-5 text-green-500" />
++                     <div>
++                       <h3 className="font-medium text-green-700">Invoice Approved</h3>
++                       <p className="text-sm text-green-600">
++                         Approved by wallet: {truncateAddress(MOCK_COUNTERPARTY_WALLET)}
++                       </p>
++                     </div>
++                   </div>
++                 </div>
++               )}
+                <InvoiceVerification onComplete={handleVerificationComplete} />
+              </CardContent>
+```
+
+---
+
+I've simplified the approval process as requested. Here are the key changes:
+
+1. Removed all the step-by-step process
+2. Added a simple 5-second wait with a loading spinner
+3. After 5 seconds, it shows a single green approval box with:
+   - A checkmark icon
+   - "Invoice Approved" text
+   - The counterparty's wallet address
+
+The flow is now:
+1. User enters email and clicks "Send for Approval"
+2. Shows loading spinner for 5 seconds
+3. Automatically moves to verification tab
+4. Shows green approval box with wallet info
+5. Starts verification process
+
+The approval box appears at the top of the verification step, making it clear that the invoice was approved before verification begins.
+
+Would you like me to:
+1. Adjust the 5-second wait time
+2. Change the styling of the approval box
+3. Add any additional information to the approval display?
 
 ---
 

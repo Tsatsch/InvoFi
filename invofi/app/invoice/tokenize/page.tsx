@@ -10,17 +10,23 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, FileText, Upload, Wallet } from "lucide-react"
+import { AlertCircle, FileText, Upload, Wallet, Loader2, CheckCircle2 } from "lucide-react"
 import { useWallet } from "@/context/wallet-context"
 import { WalletButton } from "@/components/wallet-button"
 import { InvoiceVerification } from "@/components/invoice-verification"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+
+// Mock counterparty wallet address
+const MOCK_COUNTERPARTY_WALLET = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
 
 export default function TokenizeInvoicePage() {
   const [activeTab, setActiveTab] = useState("upload")
   const [isUploaded, setIsUploaded] = useState(false)
   const [recipientEmail, setRecipientEmail] = useState("")
   const [isVerificationComplete, setIsVerificationComplete] = useState(false)
+  const [isWaitingForApproval, setIsWaitingForApproval] = useState(false)
+  const [isApproved, setIsApproved] = useState(false)
   const { isConnected, address } = useWallet()
   const router = useRouter()
 
@@ -34,7 +40,14 @@ export default function TokenizeInvoicePage() {
   const handleSendForApproval = () => {
     // This would send the invoice to the counterparty for approval
     alert(`Approval request would be sent to ${recipientEmail}`)
-    setActiveTab("verify")
+    setIsWaitingForApproval(true)
+    
+    // Mock the approval process - wait 5 seconds then show approval
+    setTimeout(() => {
+      setIsApproved(true)
+      setIsWaitingForApproval(false)
+      setActiveTab("verify")
+    }, 5000)
   }
 
   const handleVerificationComplete = () => {
@@ -176,30 +189,55 @@ export default function TokenizeInvoicePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="recipient-email">Recipient Email</Label>
-                  <Input
-                    id="recipient-email"
-                    type="email"
-                    placeholder="counterparty@company.com"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                  />
+              {isWaitingForApproval ? (
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                    <div className="flex-1">
+                      <h3 className="font-medium">Waiting for Counterparty Approval</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        We've sent an approval request to {recipientEmail}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>What's happening?</AlertTitle>
+                    <AlertDescription>
+                      The counterparty will receive an email with a link to review and approve the invoice. 
+                      This is a mock simulation - in production, this would wait for actual approval.
+                    </AlertDescription>
+                  </Alert>
                 </div>
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Note</AlertTitle>
-                  <AlertDescription>
-                    The counterparty will receive an email with a link to approve the invoice. Once approved, the verification process will begin.
-                  </AlertDescription>
-                </Alert>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient-email">Recipient Email</Label>
+                    <Input
+                      id="recipient-email"
+                      type="email"
+                      placeholder="counterparty@company.com"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                    />
+                  </div>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Note</AlertTitle>
+                    <AlertDescription>
+                      The counterparty will receive an email with a link to approve the invoice. Once approved, the verification process will begin.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button onClick={handleSendForApproval} disabled={!recipientEmail}>
-                Send for Approval
-              </Button>
+              {!isWaitingForApproval && (
+                <Button onClick={handleSendForApproval} disabled={!recipientEmail}>
+                  Send for Approval
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </TabsContent>
@@ -213,12 +251,25 @@ export default function TokenizeInvoicePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {isApproved && (
+                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <div>
+                      <h3 className="font-medium text-green-700">Invoice Approved</h3>
+                      <p className="text-sm text-green-600">
+                        Approved by wallet: {truncateAddress(MOCK_COUNTERPARTY_WALLET)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <InvoiceVerification onComplete={handleVerificationComplete} />
             </CardContent>
             <CardFooter className="flex justify-end">
               {isVerificationComplete && (
                 <Button onClick={handleContinue}>
-                  Return to Homepage
+                  Continue to Dashboard
                 </Button>
               )}
             </CardFooter>
