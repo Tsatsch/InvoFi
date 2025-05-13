@@ -5,7 +5,7 @@
 ## What is InvoFi?
 InvoFi is a decentralized platform that transforms unpaid invoices into blockchain-based digital assets. Verified invoices are tokenized as NFTs and instantly financed through a decentralized liquidity pool powered by an Automated Market Maker (AMM) — enabling businesses to unlock working capital in minutes, not months.
 
-For more details on how the AMM works, see [How the AMM Works](how_the_amm_works.md).
+For more details on how the AMM works, see [How the AMM Works](docs/how_the_amm_works.md).
 
 Instead of relying on banks or waiting for slow invoice payments, businesses upload verified receivables and receive immediate funding at transparent, market-driven rates. InvoFi reimagines invoice factoring through a **DeFi-native, programmable**, and **fraud-resistant** protocol.
 
@@ -34,7 +34,7 @@ Our key features:
 
 InvoFi opens a new, DeFi-native channel for financing real-world receivables and creates multiple roles where financial institutions can participate and profit.
 
-For more details on why this makes sense for banks, check [Why This Makes Sense for Banks](why_this_makes_sense_for_banks.md).
+For more details on why this makes sense for banks, check [Why This Makes Sense for Banks](docs/why_this_makes_sense_for_banks.md).
 
 
 ## 💡The Vision
