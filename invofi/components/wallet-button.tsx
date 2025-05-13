@@ -10,12 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useWallet } from "@/context/wallet-context"
-import { Wallet, ExternalLink, Copy, LogOut, ChevronDown, LayoutDashboard } from "lucide-react"
+import { Wallet, ExternalLink, Copy, LogOut, ChevronDown, LayoutDashboard, Shield } from "lucide-react"
 import { useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
+import { isAdminAddress } from "@/lib/config"
 
 export function WalletButton() {
   const { isConnected, address, connect, disconnect } = useWallet()
@@ -130,6 +131,8 @@ export function WalletButton() {
     )
   }
 
+  const isAdmin = isAdminAddress(address)
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -148,6 +151,17 @@ export function WalletButton() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="my-2" />
         <div className="space-y-1">
+        {isAdmin && (
+            <DropdownMenuItem asChild>
+              <Link 
+                href="/admin"
+                className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-accent"
+              >
+                <Shield className="h-4 w-4" />
+                <span>Admin Panel</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           {user && (
             <DropdownMenuItem asChild>
               <Link 
