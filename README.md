@@ -1,21 +1,52 @@
 # InvoFi
-## About InvoFi
-Revolutionizing invoice financing through blockchain technology
 
-### 🌐 What is InvoFi?
-InvoFi is a decentralized platform that revolutionizes invoice financing by turning unpaid invoices into blockchain-based digital assets. These tokenized invoices can be used as collateral in a peer-to-peer lending marketplace, enabling businesses to access working capital faster, more securely, and without relying on traditional banks.
+<img src="invofi/public/invofi.svg" alt="InvoFi Logo" width="50" align="left" style="margin-right: 10px;">
 
-InvoFi addresses a key issue many businesses face: delayed cash flow. Instead of waiting weeks or months for invoice payments, companies can tokenize verified receivables and instantly receive funding from competing lenders. This creates a liquid, transparent, and fair lending environment, where the best rates are determined by market demand, not centralized institutions.
+## What is InvoFi?
+InvoFi is a decentralized platform that transforms unpaid invoices into blockchain-based digital assets. Verified invoices are tokenized as NFTs and instantly financed through a decentralized liquidity pool powered by an Automated Market Maker (AMM) — enabling businesses to unlock working capital in minutes, not months.
 
-### 🚀 Why We Built InvoFi
-Traditional invoice financing is slow, opaque, and centralized, often favoring large corporations and financial institutions. Small and medium-sized businesses (SMBs) are especially underserved, facing rigid requirements and high fees.
+For more details on how the AMM works, see [How the AMM Works](docs/how_the_amm_works.md).
 
-**InvoFi is built to solve these problems:**
+Instead of relying on banks or waiting for slow invoice payments, businesses upload verified receivables and receive immediate funding at transparent, market-driven rates. InvoFi reimagines invoice factoring through a **DeFi-native, programmable**, and **fraud-resistant** protocol.
 
-Faster Access to Liquidity – Businesses no longer need to wait for lengthy bank approvals or payment cycles. With InvoFi, verified invoices can unlock immediate capital.
-Decentralized Lending – By opening the market to a range of lenders, from crypto-native investors to DeFi liquidity pools—we ensure competitive interest rates and broader access to credit.
-Fraud-Resistant Verification – InvoFi includes a hybrid verification layer to confirm invoice authenticity and prevent fake submissions. Initially manual, this system will evolve into a scalable, automated process.
-Transparency & Trust – Every invoice token lives on-chain, providing tamper-proof history, real-time payment tracking, and dynamic risk scoring that lenders can trust.
+## 🚀 Why We Built InvoFi
 
-### 💡The Vision
-Our mission is to democratize invoice financing by making it accessible, transparent, and secure for businesses of all sizes. InvoFi is not just a financial tool, it's an ecosystem that aligns incentives between borrowers and lenders while leveraging the power of blockchain to remove friction, cut costs, and eliminate fraud.
+### Traditional Invoice Financing
+The problems we're solving:
+
+- Slow and manual processes
+- Opaque pricing structures
+- Designed for large corporations
+- Excludes many legitimate businesses
+
+**InvoFi Solution**
+
+Our key features:
+
+- Instant liquidity through AMM
+- Decentralized capital access
+- Fraud-resistant verification
+- Transparent & trustless system
+
+---
+
+## Why This Makes Sense for Banks
+
+InvoFi opens a new, DeFi-native channel for financing real-world receivables and creates multiple roles where financial institutions can participate and profit.
+
+For more details on why this makes sense for banks, check [Why This Makes Sense for Banks](docs/why_this_makes_sense_for_banks.md).
+
+
+## 💡The Vision
+
+InvoFi's mission is to democratize invoice financing by building a protocol that is:
+
+- Transparent and programmable
+- Efficient and scalable
+- Inclusive of businesses traditionally overlooked
+
+By converting receivables into digital assets and enabling real-time financing through DeFi liquidity pools, we're unlocking trillions in trapped working capital across the global B2B economy.
+
+InvoFi is not just an app — it's the foundation for **decentralized trade finance**.
+
+---
