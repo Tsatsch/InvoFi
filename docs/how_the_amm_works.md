@@ -16,4 +16,3 @@ InvoFi uses a custom **Automated Market Maker (AMM)** to price invoices based on
 
 This system allows for **one LP per invoice**, with the financing being **fractionalized** among multiple LPs, offering capital efficiency and risk diversification.
 
----
