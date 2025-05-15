@@ -28,7 +28,7 @@ export const mockInvoices: Invoice[] = [
     amount: 12500,
     issueDate: "2025-04-10",
     dueDate: "2025-06-09",
-    status: "pending",
+    status: "approved",
     riskScore: 45,
     submitterWallet: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
     items: [
@@ -105,5 +105,28 @@ export const mockInvoices: Invoice[] = [
     ],
     paymentTerms: 90,
     vatRate: 20,
+  },
+  {
+    id: "inv_6_tokenizable",
+    invoiceNumber: "INV-2025-006",
+    client: "Tokenize Me Ltd.",
+    amount: 7500,
+    issueDate: "2025-04-20",
+    dueDate: "2025-05-20",
+    status: "APPROVED_FOR_TOKENIZATION",
+    riskScore: 30,
+    submitterWallet: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+    items: [
+      {
+        description: "NFT Creation Consulting",
+        quantity: 1,
+        unitPrice: 7500,
+      },
+    ],
+    paymentTerms: 30,
+    vatRate: 20,
+    company: "Tokenize Me Ltd.",
+    discount: 5,
+    risk: "Medium",
   },
 ]

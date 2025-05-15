@@ -2,11 +2,14 @@ export interface Invoice {
   id: string
   invoiceNumber: string
   client: string
+  company?: string
   amount: number
   issueDate: string
   dueDate: string
-  status: "draft" | "pending" | "approved" | "tokenized" | "paid"
+  status: "draft" | "pending" | "approved" | "tokenized" | "paid" | "APPROVED_FOR_TOKENIZATION"
   riskScore: number
+  risk?: string
+  discount?: number
   submitterWallet: string
   items: {
     description: string

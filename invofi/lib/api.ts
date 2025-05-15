@@ -99,5 +99,20 @@ export const api = {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  },
+
+  tokenizeInvoice: async (id: string): Promise<any> => {
+    const response = await fetch(`/api/invoices/${id}/tokenize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: "Failed to tokenize invoice and parse error response." }));
+      throw new Error(errorData.details || errorData.error || 'Failed to tokenize invoice');
+    }
+    return response.json();
   }
 }; 
