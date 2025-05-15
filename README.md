@@ -49,6 +49,29 @@ InvoFi opens a new, DeFi-native channel for financing real-world receivables and
 For more details on why this makes sense for banks, check [Why This Makes Sense for Banks](docs/why_this_makes_sense_for_banks.md).
 
 
+## 🧱 Tech Stack & Implementation
+
+InvoFi is engineered as a modular, DeFi-native protocol designed for scale, trust, and performance. The platform leverages Solana’s speed, modern smart contract frameworks, and decentralized storage to securely tokenize and finance invoices.
+
+### Core Technologies
+
+- **Blockchain:** [Solana](https://solana.com) — high throughput, low-cost transactions.
+- **Smart Contracts:** [Anchor Framework](https://book.anchor-lang.com/) — secure, fast Solana smart contract development.
+- **Invoice NFTs:** [MPL Core (Metaplex)](https://docs.metaplex.com/) — flexible digital asset standard for invoices.
+- **Off-chain Storage:** [Supabase](https://supabase.com) — PostgreSQL-powered backend for user data and mutable invoice states.
+- **Immutable Storage:** [Arweave](https://www.arweave.org) via [Irys](https://irys.xyz) — decentralized, permanent invoice PDF and metadata hosting.
+- **Frontend:** Next.js, TypeScript, Tailwind CSS, Shadcn UI — modern and composable frontend architecture.
+- **Wallet Support:** `@solana/wallet-adapter-react` — seamless multi-wallet integration (Phantom, Solflare, etc.).
+- **JS/TS Dev Tools:** [UMI (Metaplex)](https://umi.metaplex.com) — simplified program and Arweave interaction layer.
+
+### Implementation Overview
+
+InvoFi is being developed in **phases**:
+- **Phase 1:** Secure invoice creation, verification, and NFT tokenization on Solana.
+- **Phase 2:** Financialization via AMM integration, vault-controlled liquidity flows, fractionalization, and lending mechanics.
+
+👉 Dive into the full technical architecture and phased design in our [Technical Implementation Doc](docs/tech_implementation.md).
+
 ## 💡The Vision
 
 InvoFi's mission is to democratize invoice financing by building a protocol that is:
