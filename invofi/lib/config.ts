@@ -1,5 +1,5 @@
-export const SOLANA_WALLET_PATH = "/Users/nikitatikhomirov/.config/solana/id.json";
-export const HELIUS_API_KEY = "[REDACTED]";
+export const SOLANA_WALLET_PATH = "";
+export const HELIUS_API_KEY = "";
 
 // Whitelisted admin addresses
 export const ADMIN_ADDRESSES = [

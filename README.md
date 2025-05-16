@@ -57,4 +57,5 @@ How to launch:
 In InvoFi/invofi/lib/config.ts
 1. Set devnet HELIUS_API_KEY = "";
 2. Set SOLANA_WALLET_PATH to your local (Devnet) Solana wallet
-3. npm run dev:resetdb
+3. cd invofi 
+4. npm run dev:resetdb
