@@ -50,3 +50,11 @@ By converting receivables into digital assets and enabling real-time financing t
 InvoFi is not just an app — it's the foundation for **decentralized trade finance**.
 
 ---
+
+---
+
+How to launch:
+In InvoFi/invofi/lib/config.ts
+1. Set devnet HELIUS_API_KEY = "";
+2. Set SOLANA_WALLET_PATH to your local (Devnet) Solana wallet
+3. npm run dev:resetdb
