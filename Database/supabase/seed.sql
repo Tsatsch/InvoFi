@@ -35,7 +35,7 @@ VALUES (
   'SEED-001',
   CURRENT_DATE,
   CURRENT_DATE + INTERVAL '30 days',
-  'Admin Wallet Owner (2UBUzdkZZSZaEJiWNwmXQPjRA8iVL2H8okwL8K5BsbrU)', -- Your wallet address here
+  '2UBUzdkZZSZaEJiWNwmXQPjRA8iVL2H8okwL8K5BsbrU', -- SETTING SENDER_NAME TO THE WALLET ADDRESS
   'Seed Company Inc.',
   '123 Seed Street, Data City',
   'sender.seed@example.com',
@@ -50,6 +50,6 @@ VALUES (
   2000.00, -- 10*150 + 1*500 = 1500 + 500
   10,      -- 10% tax
   2200.00, -- 2000 * 1.10
-  'approved', -- Status indicating it might be ready for next steps
-  'This is a sample invoice seeded at startup. Admin wallet: 2UBUzdkZZSZaEJiWNwmXQPjRA8iVL2H8okwL8K5BsbrU'
+  'APPROVED_FOR_TOKENIZATION', -- CHANGED STATUS
+  'This is a sample invoice seeded at startup. Wallet: 2UBUzdkZZSZaEJiWNwmXQPjRA8iVL2H8okwL8K5BsbrU'
 ); 

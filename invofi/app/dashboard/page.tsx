@@ -102,23 +102,25 @@ export default function DashboardPage() {
         setTransactions(txDetails as Transaction[])
 
         // Fetch invoices from Supabase
+        console.log("[DEBUG] Wallet address for Supabase query:", address);
         const { data: supabaseInvoices, error: invoicesError } = await supabase
           .from('invoices')
           .select(`
             id,
             invoice_number,
             sender_company,
+            recipient_name,
             total_amount,
             due_date,
             status,
             sender_name,
             currency,
             items,
-            recipient_name,
             notes,
-            created_at
+            created_at,
+            tax_rate
           `)
-          .like('sender_name', `%${address}%`)
+          .eq('sender_name', address)
 
         if (invoicesError) {
           console.error("[DEBUG] Supabase invoicesError object:", JSON.stringify(invoicesError, null, 2));
@@ -129,18 +131,19 @@ export default function DashboardPage() {
             id: dbInvoice.id,
             invoiceNumber: dbInvoice.invoice_number,
             company: dbInvoice.sender_company || 'N/A',
+            client: dbInvoice.recipient_name || 'Unknown Client',
             amount: dbInvoice.total_amount,
+            issueDate: dbInvoice.created_at,
             dueDate: dbInvoice.due_date,
             status: dbInvoice.status as Invoice['status'],
+            riskScore: 5,
             risk: 'Medium',
             discount: 5,
-            submitterWallet: dbInvoice.sender_name.includes(address) ? address : dbInvoice.sender_name,
-            recipientName: dbInvoice.recipient_name,
-            currency: dbInvoice.currency,
+            submitterWallet: dbInvoice.sender_name && dbInvoice.sender_name.includes(address) ? address : dbInvoice.sender_name,
             items: dbInvoice.items || [],
+            paymentTerms: 30,
+            vatRate: dbInvoice.tax_rate || 0,
             notes: dbInvoice.notes,
-            issueDate: dbInvoice.created_at,
-            senderName: dbInvoice.sender_name,
           }))
           setInvoices(mappedInvoices)
         }
@@ -418,7 +421,18 @@ export default function DashboardPage() {
                             <p className="font-medium text-green-500">-{invoice.discount}%</p>
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2">
+                        {/* Display PDF and Metadata URIs if they exist */}
+                        {invoice.pdfUri && (
+                          <div className="mt-2 text-xs">
+                            <p className="font-medium">PDF URI: <a href={invoice.pdfUri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{invoice.pdfUri}</a></p>
+                          </div>
+                        )}
+                        {invoice.metadataUri && (
+                          <div className="mt-1 text-xs">
+                            <p className="font-medium">Metadata URI: <a href={invoice.metadataUri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{invoice.metadataUri}</a></p>
+                          </div>
+                        )}
+                        <div className="flex justify-end gap-2 mt-4">
                           <Button variant="outline" size="sm">
                             <Download className="h-4 w-4 mr-2" />
                             Download
@@ -434,10 +448,21 @@ export default function DashboardPage() {
                                   const result = await api.tokenizeInvoice(invoice.id as string)
                                   console.log("Tokenization result:", result)
                                   toast({
-                                    title: "Tokenization Successful (Mock backed by API)",
-                                    description: `Invoice ${invoice.id} tokenized. NFT Mint: ${result.nftMintAddress}`,
+                                    title: "Metadata Upload Successful",
+                                    description: `Invoice ${invoice.id} metadata uploaded. PDF: ${result.pdfUri}, Metadata: ${result.metadataUri}`,
                                   })
-                                  setInvoices(prev => prev.map(inv => inv.id === invoice.id ? {...inv, status: 'tokenized' as Invoice['status']} : inv))
+                                  setInvoices(prevInvoices => 
+                                    prevInvoices.map(inv => 
+                                      inv.id === invoice.id 
+                                        ? { 
+                                            ...inv, 
+                                            status: 'tokenized' as Invoice['status'],
+                                            pdfUri: result.pdfUri,
+                                            metadataUri: result.metadataUri 
+                                          }
+                                        : inv
+                                    )
+                                  )
                                 } catch (error: any) {
                                   console.error("Tokenization failed:", error)
                                   toast({
@@ -457,12 +482,6 @@ export default function DashboardPage() {
                                 <FileText className="h-4 w-4 mr-2" />
                               )}
                               {isTokenizing === invoice.id ? "Tokenizing..." : "Tokenize Invoice"}
-                            </Button>
-                          )}
-                          {invoice.status === 'tokenized' && (
-                            <Button size="sm">
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Withdraw Funds
                             </Button>
                           )}
                         </div>

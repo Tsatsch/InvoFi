@@ -19,4 +19,6 @@ export interface Invoice {
   paymentTerms: 30 | 60 | 90
   vatRate: number
   notes?: string
+  pdfUri?: string
+  metadataUri?: string
 }
