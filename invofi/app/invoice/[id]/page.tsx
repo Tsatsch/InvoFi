@@ -64,6 +64,8 @@ export default function InvoiceDetailPage() {
         return <Badge variant="outline">Draft</Badge>
       case "pending":
         return <Badge variant="secondary">Pending</Badge>
+      case "approved":
+        return <Badge variant="success">Approved</Badge>
       case "tokenized":
         return <Badge variant="default">Tokenized</Badge>
       case "paid":
@@ -79,6 +81,8 @@ export default function InvoiceDetailPage() {
         return <Clock className="h-5 w-5 text-muted-foreground" />
       case "pending":
         return <AlertCircle className="h-5 w-5 text-yellow-500" />
+      case "approved":
+        return <CheckCircle className="h-5 w-5 text-green-500" />
       case "tokenized":
         return <CheckCircle className="h-5 w-5 text-primary" />
       case "paid":
@@ -295,10 +299,23 @@ export default function InvoiceDetailPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button className="w-full" asChild>
-                  <Link href={`/invoice/tokenize/${invoice.id}`}>Tokenize Invoice</Link>
+                  <Link href={`/invoice/tokenize/${invoice.id}`}>Submit for Approval</Link>
                 </Button>
                 <Button variant="outline" className="w-full" asChild>
                   <Link href={`/invoice/edit/${invoice.id}`}>Edit Invoice</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {invoice.status === "approved" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button className="w-full" asChild>
+                  <Link href={`/invoice/tokenize/${invoice.id}`}>Tokenize Invoice</Link>
                 </Button>
               </CardContent>
             </Card>
