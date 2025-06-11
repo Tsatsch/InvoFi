@@ -25,8 +25,18 @@ export interface Invoice {
 }
 
 export const api = {
-  getInvoices: async (): Promise<Invoice[]> => {
-    const response = await fetch('/api/invoices');
+  getInvoices: async (): Promise<Invoice[]> => {   // TODO: вот сюда нужна добавить Allow
+    const response = await fetch('/api/invoices',
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',  //:TODO REMOVE
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400'
+        }
+      }
+    );
     if (!response.ok) {
       throw new Error('Failed to fetch invoices');
     }

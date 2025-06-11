@@ -121,6 +121,13 @@ export default function DashboardPage() {
             tax_rate
           `)
           .eq('sender_name', address)
+          // .headers({
+          //   'Access-Control-Allow-Origin': '*',
+          //   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+          //   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+          //   'Access-Control-Allow-Credentials': 'true',
+          //   'Access-Control-Max-Age': '86400'
+          // })
 
         if (invoicesError) {
           console.error("[DEBUG] Supabase invoicesError object:", JSON.stringify(invoicesError, null, 2));

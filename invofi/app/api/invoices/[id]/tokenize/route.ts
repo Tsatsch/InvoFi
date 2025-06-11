@@ -8,6 +8,7 @@ import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
 import { readFile } from "fs/promises"; // To read the wallet file
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'; // To generate a placeholder PDF
 import { generateInvoicePdfBytes } from '../../generate/route'; // Adjusted import path
+import { env } from 'process';
 
 // Helper function to generate a very simple placeholder PDF
 async function generatePlaceholderPdfBytes(invoiceId: string): Promise<Uint8Array> {
@@ -21,7 +22,7 @@ async function generatePlaceholderPdfBytes(invoiceId: string): Promise<Uint8Arra
 }
 
 export async function POST(
-  request: Request,
+  request: Request, 
   { params }: { params: { id: string } }
 ) {
   const invoiceId = params.id;
@@ -29,11 +30,19 @@ export async function POST(
   try {
     console.log(`[API /tokenize] Attempting to tokenize invoice ID: ${invoiceId}`);
 
+    const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+    if (!HELIUS_API_KEY)
+      throw new Error("Не найдена переменная окружения HELIUS_API_KEY!");
+
     // 1. Initialize Umi and Irys uploader
-    const umi = createUmi(`https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`);
+    const umi = createUmi(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`);  //set devnet?
     
+    //HELIUS
     // Load wallet
-    const walletJson = await readFile(SOLANA_WALLET_PATH, 'utf-8');
+    //const walletJson = await readFile(SOLANA_WALLET_PATH, 'utf-8');
+    const walletJson = process.env.SOLANA_WALLET_KEY;
+    if (!walletJson)
+      throw new Error("Не найдена переменная окружения SOLANA_WALLET_KEY!");
     const walletSecretKey = new Uint8Array(JSON.parse(walletJson));
     const signerKeypair = umi.eddsa.createKeypairFromSecretKey(walletSecretKey);
     const signer = createSignerFromKeypair(umi, signerKeypair);
