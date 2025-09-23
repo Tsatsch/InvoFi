@@ -16,6 +16,10 @@ declare_id!("6wG3H75vWDm7k6j72Ka5yGXTozz5rBxryZrMyLZ1KwGD");
 pub mod invo_fi {
     use super::*;
 
+    pub fn initialize(ctx: Context<Initialize>, seed: u64, fee: u16) -> Result<()> {
+        instructions::initialize::handler(ctx, fee, seed)
+    }
+
     // /// Mint a new invoice NFT with the provided metadata
     // pub fn mint_invoice_nft(
     //     ctx: Context<MintAsset>,
