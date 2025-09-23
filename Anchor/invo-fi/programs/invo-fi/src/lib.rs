@@ -16,27 +16,27 @@ declare_id!("6wG3H75vWDm7k6j72Ka5yGXTozz5rBxryZrMyLZ1KwGD");
 pub mod invo_fi {
     use super::*;
 
-    /// Mint a new invoice NFT with the provided metadata
-    pub fn mint_invoice_nft(
-        ctx: Context<MintAsset>,
-        invoice_number: String,
-        loan_amount: String,
-        currency: String,
-        issuer_name: String,
-        recipient_name: String,
-        issue_date: String,
-        due_date: String,
-    ) -> Result<()> {
-        ctx.accounts.mint_core_asset(
-            invoice_number,
-            loan_amount,
-            currency,
-            issuer_name,
-            recipient_name,
-            issue_date,
-            due_date,
-        )
-    }
+    // /// Mint a new invoice NFT with the provided metadata
+    // pub fn mint_invoice_nft(
+    //     ctx: Context<MintAsset>,
+    //     invoice_number: String,
+    //     loan_amount: String,
+    //     currency: String,
+    //     issuer_name: String,
+    //     recipient_name: String,
+    //     issue_date: String,
+    //     due_date: String,
+    // ) -> Result<()> {
+    //     ctx.accounts.mint_core_asset(
+    //         invoice_number,
+    //         loan_amount,
+    //         currency,
+    //         issuer_name,
+    //         recipient_name,
+    //         issue_date,
+    //         due_date,
+    //     )
+    // }
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]

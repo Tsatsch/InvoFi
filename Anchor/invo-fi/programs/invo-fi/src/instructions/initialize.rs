@@ -11,8 +11,8 @@ pub fn handler(ctx: Context<Initialize>) -> Result<()> {
     Ok(())
 }
 
-pub fn init_invoice_nft(mint_asset: Context<MintAsset>) -> Result<()> {
-    mint_invoice_nft::MintAsset::mint_core_asset(&mut mint_asset);
-    msg!("Invoice NFT minted");
-    Ok(())
-}
+// pub fn init_invoice_nft(mint_asset: Context<MintAsset>) -> Result<()> {
+//     mint_invoice_nft::MintAsset::mint_core_asset(&mut mint_asset);
+//     msg!("Invoice NFT minted");
+//     Ok(())
+// }
