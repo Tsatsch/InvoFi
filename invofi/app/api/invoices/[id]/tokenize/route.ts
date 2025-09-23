@@ -72,6 +72,7 @@ export async function POST(
       return NextResponse.json({ error: `Invoice is not approved for tokenization. Current status: ${invoiceDb.status}` }, { status: 400 });
     }
     console.log(`[API /tokenize] Invoice ${invoiceId} validated with status: ${invoiceDb.status}`);
+    console.log(`[API /tokenize] Raw invoice data from database:`, JSON.stringify(invoiceDb, null, 2));
 
     // 3. Generate REAL Invoice PDF using the new function
     // Map invoiceDb to InvoicePdfData structure. Explicit mapping is safer.
@@ -103,6 +104,7 @@ export async function POST(
     };
 
     console.log('[API /tokenize] Generating actual PDF for invoice:', invoicePdfDataForGeneration.invoiceNumber);
+    console.log('[API /tokenize] Full invoice data being passed to PDF generator:', JSON.stringify(invoicePdfDataForGeneration, null, 2));
     const pdfBytes = await generateInvoicePdfBytes(invoicePdfDataForGeneration);
     const pdfFile = createGenericFile(pdfBytes, `invoice-${invoiceId}.pdf`, { // Using a more generic name
         contentType: "application/pdf",

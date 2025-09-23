@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { formatCurrency } from "@/lib/utils"
-import { mockInvoices } from "@/lib/mock-data"
 import type { Invoice } from "@/lib/types"
 import { Download, FileText, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { isAdminAddress } from "@/lib/config"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { supabase } from "@/lib/supabase-client"
 
 export default function AdminPage() {
   const { address, isConnected } = useWallet()
@@ -25,26 +25,90 @@ export default function AdminPage() {
   const [riskScores, setRiskScores] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    if (!isConnected || !address) {
-      router.push("/")
-      return
+    const fetchPendingInvoices = async () => {
+      if (!isConnected || !address) {
+        router.push("/")
+        return
+      }
+
+      // Check if the connected wallet is whitelisted
+      if (!isAdminAddress(address)) {
+        toast({
+          title: "Access Denied",
+          description: "You are not authorized to access the admin panel.",
+          variant: "destructive",
+        })
+        router.push("/dashboard")
+        return
+      }
+
+      setIsLoading(true)
+      try {
+        // Fetch pending invoices from Supabase
+        const { data: supabaseInvoices, error: invoicesError } = await supabase
+          .from('invoices')
+          .select(`
+            id,
+            invoice_number,
+            sender_company,
+            recipient_name,
+            total_amount,
+            due_date,
+            status,
+            sender_name,
+            currency,
+            items,
+            notes,
+            created_at,
+            tax_rate,
+            issue_date
+          `)
+          .eq('status', 'PENDING_ADMIN_APPROVAL')
+
+        if (invoicesError) {
+          console.error("Supabase error:", invoicesError)
+          toast({ 
+            title: "Error fetching invoices", 
+            description: invoicesError.message || 'Unknown Supabase error', 
+            variant: "destructive" 
+          })
+          setPendingInvoices([])
+        } else if (supabaseInvoices) {
+          // Map Supabase data to Invoice interface
+          const mappedInvoices: Invoice[] = supabaseInvoices.map((dbInvoice: any) => ({
+            id: dbInvoice.id,
+            invoiceNumber: dbInvoice.invoice_number,
+            company: dbInvoice.sender_company || 'N/A',
+            client: dbInvoice.recipient_name || 'Unknown Client',
+            amount: dbInvoice.total_amount,
+            issueDate: dbInvoice.issue_date || dbInvoice.created_at,
+            dueDate: dbInvoice.due_date,
+            status: 'pending' as const, // Map to frontend status
+            riskScore: 5, // Default risk score
+            risk: 'Medium',
+            discount: 5,
+            submitterWallet: dbInvoice.sender_name,
+            items: dbInvoice.items || [],
+            paymentTerms: 30, // Default payment terms
+            vatRate: dbInvoice.tax_rate || 0,
+            notes: dbInvoice.notes,
+          }))
+          setPendingInvoices(mappedInvoices)
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending invoices:", error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch pending invoices. Please try again.",
+          variant: "destructive",
+        })
+        setPendingInvoices([])
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    // Check if the connected wallet is whitelisted
-    if (!isAdminAddress(address)) {
-      toast({
-        title: "Access Denied",
-        description: "You are not authorized to access the admin panel.",
-        variant: "destructive",
-      })
-      router.push("/dashboard")
-      return
-    }
-
-    // Load pending invoices
-    const pending = mockInvoices.filter(inv => inv.status === "pending")
-    setPendingInvoices(pending)
-    setIsLoading(false)
+    fetchPendingInvoices()
   }, [isConnected, address, router, toast])
 
   const handleDownload = async (invoice: Invoice) => {
@@ -67,37 +131,40 @@ export default function AdminPage() {
 
   const handleApprove = async (invoiceId: string) => {
     try {
-      // In a real app, this would be an API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
       // Get the invoice being approved
       const invoiceToApprove = pendingInvoices.find(inv => inv.id === invoiceId)
       if (!invoiceToApprove) {
         throw new Error("Invoice not found")
       }
 
-      // Update the invoice with the new risk score and status
-      const updatedInvoice = {
-        ...invoiceToApprove,
-        status: "approved" as const,
-        riskScore: riskScores[invoiceId] || invoiceToApprove.riskScore
+      // Update the invoice status in Supabase
+      const { error: updateError } = await supabase
+        .from('invoices')
+        .update({ 
+          status: 'APPROVED_FOR_TOKENIZATION',
+          // You might want to add a risk_score field to your database schema
+          // risk_score: riskScores[invoiceId] || invoiceToApprove.riskScore
+        })
+        .eq('id', invoiceId)
+
+      if (updateError) {
+        throw new Error(updateError.message)
       }
 
-      // In a real app, this would be an API call to update the invoice
-      // For now, we'll just remove it from the pending list
+      // Remove from pending list in UI
       setPendingInvoices(prev => 
         prev.filter(inv => inv.id !== invoiceId)
       )
 
       toast({
         title: "Invoice Approved",
-        description: "The invoice has been successfully approved.",
+        description: "The invoice has been successfully approved and is now ready for tokenization.",
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to approve invoice:", error)
       toast({
         title: "Approval Failed",
-        description: "Could not approve the invoice. Please try again.",
+        description: error.message || "Could not approve the invoice. Please try again.",
         variant: "destructive",
       })
     }
