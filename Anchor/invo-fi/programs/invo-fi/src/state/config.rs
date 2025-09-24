@@ -4,12 +4,13 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct AmmConfig {
-    seed: u64,
-    authority: Pubkey,
-    mint_x: Pubkey,
-    mint_y: Pubkey,
-    vault_x: Pubkey,
-    vault_y: Pubkey,
-    lp_mint: Pubkey,
-    fee: u16,
+    pub seed: u64,
+    pub authority: Pubkey,
+    pub mint_x: Pubkey,
+    pub mint_y: Pubkey,
+    pub vault_x: Pubkey,
+    pub vault_y: Pubkey,
+    pub lp_mint: Pubkey,
+    pub fee: u16,
+    pub bump: u8,
 }

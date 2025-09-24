@@ -17,7 +17,7 @@ pub mod invo_fi {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, seed: u64, fee: u16) -> Result<()> {
-        instructions::initialize::handler(ctx, fee, seed)
+        instructions::initialize::handler(ctx, seed, fee)
     }
 
     // /// Mint a new invoice NFT with the provided metadata
