@@ -17,7 +17,7 @@ invo_fi = "6wG3H75vWDm7k6j72Ka5yGXTozz5rBxryZrMyLZ1KwGD"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

@@ -20,6 +20,10 @@ pub mod invo_fi {
         instructions::initialize::handler(ctx, seed, fee)
     }
 
+    pub fn deposit(ctx: Context<Deposit>, amount_x: u64, amount_y: u64) -> Result<()> {
+        instructions::deposit::handler(ctx, amount_x, amount_y)
+    }
+
     // /// Mint a new invoice NFT with the provided metadata
     // pub fn mint_invoice_nft(
     //     ctx: Context<MintAsset>,
