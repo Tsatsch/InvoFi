@@ -24,6 +24,14 @@ pub mod invo_fi {
         instructions::deposit::handler(ctx, amount_x, amount_y)
     }
 
+    pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64) -> Result<()> {
+        instructions::withdraw::handler(ctx, lp_amount)
+    }
+
+    pub fn swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
+        instructions::swap::handler(ctx, amount_in, min_amount_out)
+    }
+
     // /// Mint a new invoice NFT with the provided metadata
     // pub fn mint_invoice_nft(
     //     ctx: Context<MintAsset>,

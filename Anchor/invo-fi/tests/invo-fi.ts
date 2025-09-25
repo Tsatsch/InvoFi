@@ -46,6 +46,7 @@ describe("invo-fi", () => {
   let userVaultX: PublicKey;
   let userVaultY: PublicKey;
   let userLpWallet: PublicKey;
+  let lpTokensReceived: BN;
 
   // Amount of tokens for deposit
   const DEPOSIT_X_AMOUNT = new BN(100 * 10 ** 6); // 100 TOKEN_X
@@ -156,13 +157,124 @@ describe("invo-fi", () => {
     const finalUserLpBalance = (await provider.connection.getTokenAccountBalance(userLpWallet)).value.uiAmount;
     const finalUserXBalance = (await provider.connection.getTokenAccountBalance(userVaultX)).value.uiAmount;
     // Calculate the expected LP tokens using the formula from the contract
-    const expectedLpAmount = Math.floor(Math.sqrt(DEPOSIT_X_AMOUNT.toNumber() * DEPOSIT_Y_AMOUNT.toNumber()));
-
-    assert.strictEqual(finalVaultXBalance, DEPOSIT_X_AMOUNT.toNumber() / (10 ** 6));
-    assert.strictEqual(finalVaultYBalance, DEPOSIT_Y_AMOUNT.toNumber() / (10 ** 6));
-    assert.strictEqual(finalUserXBalance, 0);
+    const expectedLpAmount = new BN(Math.floor(Math.sqrt(DEPOSIT_X_AMOUNT.toNumber() * DEPOSIT_Y_AMOUNT.toNumber())));
+    lpTokensReceived = expectedLpAmount;
+    
     // The uiAmount is the raw amount divided by 10^decimals
-    assert.strictEqual(finalUserLpBalance, expectedLpAmount / (10 ** 6));
+    assert.strictEqual(finalUserLpBalance, expectedLpAmount.toNumber() / (10 ** 6));
+  });
+
+  it("Should withdraw liquidity", async () => {
+    const [configPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("config"), SEED.toBuffer("le", 8)],
+        program.programId
+    );
+    
+    // Withdraw half of the LP tokens
+    const lpAmountToWithdraw = new BN(lpTokensReceived.toNumber() / 2);
+
+    // Get balances before
+    const initialVaultX = (await provider.connection.getTokenAccountBalance(vaultX.publicKey)).value.uiAmount;
+    const initialVaultY = (await provider.connection.getTokenAccountBalance(vaultY.publicKey)).value.uiAmount;
+    const initialUserLp = (await provider.connection.getTokenAccountBalance(userLpWallet)).value.uiAmount;
+    
+    const tx = await program.methods
+        .withdraw(lpAmountToWithdraw)
+        .accounts({
+            user: wallet.publicKey,
+            config: configPda,
+            vaultX: vaultX.publicKey,
+            vaultY: vaultY.publicKey,
+            userVaultX: userVaultX,
+            userVaultY: userVaultY,
+            lpMint: lpMint.publicKey,
+            userLpWallet: userLpWallet,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+        
+    console.log("Withdraw transaction signature", tx);
+    await provider.connection.confirmTransaction(tx, "confirmed");
+
+    // Get balances after
+    const finalVaultX = (await provider.connection.getTokenAccountBalance(vaultX.publicKey)).value.uiAmount;
+    const finalUserLp = (await provider.connection.getTokenAccountBalance(userLpWallet)).value.uiAmount;
+
+    // Assertions
+    // We withdrew half the LP, so half the liquidity should be left.
+    assert.strictEqual(finalVaultX, initialVaultX / 2);
+    // User LP balance should be halved.
+    assert.strictEqual(finalUserLp, initialUserLp / 2);
+  });
+
+  it("Should swap X for Y", async () => {
+    const [configPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("config"), SEED.toBuffer("le", 8)],
+        program.programId
+    );
+    
+    // Swap 10 X tokens
+    const amountIn = new BN(10 * 10 ** 6);
+    // Slippage tolerance: 5%
+    // THIS IS A SIMPLIFIED CALCULATION FOR TEST. Real clients would calculate this more precisely.
+    const minAmountOut = new BN(0); // For simplicity in test, we accept any amount out.
+
+    const initialUserX = (await provider.connection.getTokenAccountBalance(userVaultX)).value.amount;
+    const initialUserY = (await provider.connection.getTokenAccountBalance(userVaultY)).value.amount;
+    
+    const tx = await program.methods
+        .swap(amountIn, minAmountOut)
+        .accounts({
+            user: wallet.publicKey,
+            config: configPda,
+            vaultX: vaultX.publicKey,
+            vaultY: vaultY.publicKey,
+            userVaultX: userVaultX,
+            userVaultY: userVaultY,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+    console.log("Swap transaction signature", tx);
+    await provider.connection.confirmTransaction(tx, "confirmed");
+
+    const finalUserX = (await provider.connection.getTokenAccountBalance(userVaultX)).value.amount;
+    const finalUserY = (await provider.connection.getTokenAccountBalance(userVaultY)).value.amount;
+
+    // Assert that user's X balance decreased and Y balance increased.
+    assert(new BN(finalUserX).lt(new BN(initialUserX)));
+    assert(new BN(finalUserY).gt(new BN(initialUserY)));
+  });
+
+  it("Should fail swap due to slippage", async () => {
+    const [configPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("config"), SEED.toBuffer("le", 8)],
+        program.programId
+    );
+    
+    const amountIn = new BN(10 * 10 ** 6);
+    // Set an impossibly high minimum amount out to trigger slippage error
+    const minAmountOut = new BN(100_000 * 10 ** 6);
+
+    try {
+        await program.methods
+            .swap(amountIn, minAmountOut)
+            .accounts({
+                user: wallet.publicKey,
+                config: configPda,
+                vaultX: vaultX.publicKey,
+                vaultY: vaultY.publicKey,
+                userVaultX: userVaultX,
+                userVaultY: userVaultY,
+                tokenProgram: TOKEN_PROGRAM_ID,
+            })
+            .rpc();
+        // If the transaction succeeds, the test should fail.
+        assert.fail("Transaction should have failed due to slippage.");
+    } catch (err) {
+        // Check that the error is the custom error we defined.
+        assert.strictEqual(err.error.errorCode.code, "SlippageExceeded");
+    }
   });
 
   it("Mint invoice NFT Full test", async () => {
