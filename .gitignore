@@ -4,11 +4,5 @@
 docs/sample_data/
 node_modules/
 Anchor/invo-fi/.specstory/.gitignore
-Anchor/invo-fi/.specstory/history/2025-05-09_15-07Z-запрос-о-значении-info.md
-Anchor/invo-fi/.specstory/history/2025-05-09_18-12Z-контекст-против-инструкций-в-коде.md
-Anchor/invo-fi/.specstory/history/2025-05-10_11-39Z-rust-code-issues-nft-minting-fixes.md
-Anchor/invo-fi/.specstory/history/2025-05-10_16-03Z-debugging-fetchanddisplayassetplugins-function.md
-Anchor/invo-fi/.specstory/history/2025-05-11_08-47Z-fixing-rust-errors-in-anchor-project.md
-Anchor/invo-fi/.specstory/history/2025-09-23_12-30Z-что-такое-vault-и-его-поля.md
+Anchor/invo-fi/.specstory/history/
 Anchor/invo-fi/programs/invo-fi/src/lib.rs
-Anchor/invo-fi/.specstory/history/2025-09-23_16-48Z-попробуй-решить-ошибку.md

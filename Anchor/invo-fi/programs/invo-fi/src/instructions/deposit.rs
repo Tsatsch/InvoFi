@@ -1,3 +1,4 @@
+
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount, Transfer};
 use crate::state::config::AmmConfig;
@@ -48,13 +49,24 @@ pub fn handler(ctx: Context<Deposit>, amount_x: u64, amount_y: u64) -> Result<()
     // Здесь будет ваш код
     //сначала нужно описать какие аккаунты учавствуют в переводе:
     
+    let amount_vault_x = ctx.accounts.vault_x.amount;
+    let amount_vault_y = ctx.accounts.vault_y.amount;
+    let supply = ctx.accounts.lp_mint.supply;
+
+    //check if it's a 1st deposit
+    let lp_to_mint: u64;
+    if(ctx.accounts.lp_mint.supply == 0)
+        { lp_to_mint = ((amount_x as f64 * amount_y as f64).sqrt()) as u64;}
+    else {
+        lp_to_mint = ((amount_x as u128 * supply as u128) / amount_vault_x as u128) as u64;
+    }
     let seeds = &[
         CONFIG_SEED,
         &ctx.accounts.config.seed.to_le_bytes()[..],
         &[ctx.accounts.config.bump]
     ];
     let signer_seeds = &[&seeds[..]];
-    
+
     let transfer_x_accounts = Transfer{
         from: ctx.accounts.user_vault_x.to_account_info(), 
     to: ctx.accounts.vault_x.to_account_info(), 
@@ -79,5 +91,6 @@ pub fn handler(ctx: Context<Deposit>, amount_x: u64, amount_y: u64) -> Result<()
     //for signing the PDA transaction
     let cpi_mint = CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), 
     mint_to_accounts, signer_seeds);
+    let mpi_mint = token::mint_to(cpi_mint, lp_to_mint)?;
     Ok(())
 }

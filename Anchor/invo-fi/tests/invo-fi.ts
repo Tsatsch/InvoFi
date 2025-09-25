@@ -62,7 +62,6 @@ describe("invo-fi", () => {
     // Create user's token accounts (ATAs)
     userVaultX = (await getOrCreateAssociatedTokenAccount(provider.connection, wallet.payer, mintX, wallet.publicKey)).address;
     userVaultY = (await getOrCreateAssociatedTokenAccount(provider.connection, wallet.payer, mintY, wallet.publicKey)).address;
-    userLpWallet = (await getOrCreateAssociatedTokenAccount(provider.connection, wallet.payer, lpMint.publicKey, wallet.publicKey)).address;
 
     // Mint some tokens to the user's vaults so they have something to deposit
     await mintTo(provider.connection, wallet.payer, mintX, userVaultX, wallet.payer, DEPOSIT_X_AMOUNT.toNumber());
@@ -118,6 +117,9 @@ describe("invo-fi", () => {
   });
 
   it("Should deposit liquidity", async () => {
+    // Create the user's LP token account now that the mint exists
+    userLpWallet = (await getOrCreateAssociatedTokenAccount(provider.connection, wallet.payer, lpMint.publicKey, wallet.publicKey)).address;
+
     const [configPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("config"), SEED.toBuffer("le", 8)],
         program.programId
@@ -153,12 +155,14 @@ describe("invo-fi", () => {
     const finalVaultYBalance = (await provider.connection.getTokenAccountBalance(vaultY.publicKey)).value.uiAmount;
     const finalUserLpBalance = (await provider.connection.getTokenAccountBalance(userLpWallet)).value.uiAmount;
     const finalUserXBalance = (await provider.connection.getTokenAccountBalance(userVaultX)).value.uiAmount;
+    // Calculate the expected LP tokens using the formula from the contract
+    const expectedLpAmount = Math.floor(Math.sqrt(DEPOSIT_X_AMOUNT.toNumber() * DEPOSIT_Y_AMOUNT.toNumber()));
 
     assert.strictEqual(finalVaultXBalance, DEPOSIT_X_AMOUNT.toNumber() / (10 ** 6));
     assert.strictEqual(finalVaultYBalance, DEPOSIT_Y_AMOUNT.toNumber() / (10 ** 6));
     assert.strictEqual(finalUserXBalance, 0);
-    // Note: We are checking for the hardcoded 100 tokens from the Rust code
-    assert.strictEqual(finalUserLpBalance, 100 / (10 ** 6));
+    // The uiAmount is the raw amount divided by 10^decimals
+    assert.strictEqual(finalUserLpBalance, expectedLpAmount / (10 ** 6));
   });
 
   it("Mint invoice NFT Full test", async () => {
