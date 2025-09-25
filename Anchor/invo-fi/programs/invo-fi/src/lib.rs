@@ -1,58 +1,24 @@
-pub mod constants;
-pub mod error;
-pub mod instructions;
-pub mod state;
-
 use anchor_lang::prelude::*;
+use instructions::*;
 
-pub use constants::*;
-pub use instructions::*;
-pub use state::*;
+declare_id!("inVoK3cvQJ2y2xR26N62q21sJcTj1S2tV4gys1mXg2T");
 
-declare_id!("6wG3H75vWDm7k6j72Ka5yGXTozz5rBxryZrMyLZ1KwGD");
+mod constants;
+mod error;
+mod instructions;
+mod state;
 
-/// Program for managing invoice NFTs using MPL Core
 #[program]
 pub mod invo_fi {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, seed: u64, fee: u16) -> Result<()> {
-        instructions::initialize::handler(ctx, seed, fee)
+    pub fn mint_invoice_nft(
+        ctx: Context<MintInvoiceNft>,
+        name: String,
+        uri: String,
+    ) -> Result<()> {
+        instructions::mint_invoice_nft::handler(ctx, name, uri)
     }
-
-    pub fn deposit(ctx: Context<Deposit>, amount_x: u64, amount_y: u64) -> Result<()> {
-        instructions::deposit::handler(ctx, amount_x, amount_y)
-    }
-
-    pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64) -> Result<()> {
-        instructions::withdraw::handler(ctx, lp_amount)
-    }
-
-    pub fn swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
-        instructions::swap::handler(ctx, amount_in, min_amount_out)
-    }
-
-    // /// Mint a new invoice NFT with the provided metadata
-    // pub fn mint_invoice_nft(
-    //     ctx: Context<MintAsset>,
-    //     invoice_number: String,
-    //     loan_amount: String,
-    //     currency: String,
-    //     issuer_name: String,
-    //     recipient_name: String,
-    //     issue_date: String,
-    //     due_date: String,
-    // ) -> Result<()> {
-    //     ctx.accounts.mint_core_asset(
-    //         invoice_number,
-    //         loan_amount,
-    //         currency,
-    //         issuer_name,
-    //         recipient_name,
-    //         issue_date,
-    //         due_date,
-    //     )
-    // }
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
