@@ -4,7 +4,6 @@ use instructions::*;
 declare_id!("inVoK3cvQJ2y2xR26N62q21sJcTj1S2tV4gys1mXg2T");
 
 mod constants;
-mod error;
 mod instructions;
 mod state;
 
@@ -12,22 +11,13 @@ mod state;
 pub mod invo_fi {
     use super::*;
 
-    pub fn mint_invoice_nft(
-        ctx: Context<MintInvoiceNft>,
-        name: String,
-        uri: String,
+    pub fn list_invoice(
+        ctx: Context<ListInvoice>, 
+        total_amount: u64,
+        purchase_price: u64,
+        due_date: i64,
+        risk_rating: u8
     ) -> Result<()> {
-        instructions::mint_invoice_nft::handler(ctx, name, uri)
+        instructions::list_invoice::handler(ctx, total_amount, purchase_price, due_date, risk_rating)
     }
-}
-
-#[derive(AnchorDeserialize, AnchorSerialize)]
-pub struct MintInvoiceNftArgs {
-    pub invoice_number: String,
-    pub loan_amount: String,
-    pub currency: String,
-    pub issuer_name: String,
-    pub recipient_name: String,
-    pub issue_date: String,
-    pub due_date: String,
 }

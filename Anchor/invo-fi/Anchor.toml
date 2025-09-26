@@ -8,10 +8,10 @@ skip-lint = false
 idl-build = true
 
 [programs.localnet]
-invo_fi = "6wG3H75vWDm7k6j72Ka5yGXTozz5rBxryZrMyLZ1KwGD"
+invo_fi = "inVoK3cvQJ2y2xR26N62q21sJcTj1S2tV4gys1mXg2T"
 
 [programs.devnet]
-invo_fi = "6wG3H75vWDm7k6j72Ka5yGXTozz5rBxryZrMyLZ1KwGD"
+invo_fi = "inVoK3cvQJ2y2xR26N62q21sJcTj1S2tV4gys1mXg2T"
 
 [registry]
 url = "https://api.apr.dev"
