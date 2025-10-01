@@ -197,6 +197,22 @@ describe("invo_fi", () => {
 
     // Build remaining accounts from on-chain data
     const remainingAccounts = [];
+    // Prepend token program, vault (from) and invoice PDA (authority) to unify lifetimes in CPI
+    remainingAccounts.push({
+      pubkey: TOKEN_PROGRAM_ID,
+      isWritable: false,
+      isSigner: false,
+    });
+    remainingAccounts.push({
+      pubkey: usdcVaultPda,
+      isWritable: true,
+      isSigner: false,
+    });
+    remainingAccounts.push({
+      pubkey: invoicePda,
+      isWritable: false,
+      isSigner: false,
+    });
     for (let i = 0; i < invoiceAccountData.contributorCount; i++) {
         const contributorPubkey = invoiceAccountData.contributors[i].contributor;
         // We need the associated token account for each contributor

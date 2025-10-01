@@ -26,11 +26,11 @@ pub struct Contribute<'info> {
 }
 
 pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
-    // With token transfers, we don't have the `AccountBorrowFailed` issue,
-    // so we can go back to a single mutable borrow for the whole function.
+    // With SPL token transfers we can keep a single mutable borrow of the invoice
+    // for the whole instruction. There is no double-borrow CPI pattern here.
     let invoice_account = &mut ctx.accounts.invoice_account.load_mut()?;
 
-    // --- Validation Checks ---
+    // 1) Basic sanity checks before taking any funds
     require!(invoice_account.status == InvoiceStatus::Funding as u8, InvoiceError::NotFunding);
 
     let remaining_amount = invoice_account.purchase_price.checked_sub(invoice_account.total_funded_amount).unwrap();
@@ -39,7 +39,7 @@ pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
     let contributor_idx = invoice_account.contributor_count as usize;
     require!(contributor_idx < invoice_account.contributors.len(), InvoiceError::ContributorLimitExceeded);
 
-    // --- CPI to transfer USDC ---
+    // 2) Move USDC from the contributor to the invoice vault (escrow)
     let cpi_accounts = token::Transfer {
         from: ctx.accounts.contributor_usdc_account.to_account_info(),
         to: ctx.accounts.usdc_vault.to_account_info(),
@@ -48,7 +48,7 @@ pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
     let cpi_context = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
     token::transfer(cpi_context, amount)?;
 
-    // --- Update State ---
+    // 3) Persist contribution on-chain
     invoice_account.total_funded_amount = invoice_account.total_funded_amount.checked_add(amount).unwrap();
     
     invoice_account.contributors[contributor_idx] = Contribution {
@@ -57,7 +57,7 @@ pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
     };
     invoice_account.contributor_count += 1;
 
-    // --- Check if fully funded ---
+    // 4) If we’ve reached the purchase price, mark the invoice as financed
     if invoice_account.total_funded_amount == invoice_account.purchase_price {
         invoice_account.status = InvoiceStatus::Financed as u8;
         msg!("Invoice fully financed!");

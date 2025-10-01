@@ -19,21 +19,21 @@ pub struct ListInvoice<'info> {
     )]
     pub invoice_account: AccountLoader<'info, Invoice>,
 
-    /// The mint of the SPL token used for payments (e.g., USDC).
+    /// SPL mint used for funding and repayments (e.g. USDC)
     pub usdc_mint: Account<'info, Mint>,
 
-    /// The token account that will hold the collected USDC.
-    /// It's a PDA, owned by the invoice_account PDA.
+    /// PDA-owned token account that will custody investor funds during funding
     #[account(
         init,
         payer = issuer,
         token::mint = usdc_mint,
-        token::authority = invoice_account, // The PDA owns this vault
+        token::authority = invoice_account, // vault authority is the invoice PDA
         seeds = [b"vault", invoice_account.key().as_ref()],
         bump,
     )]
     pub usdc_vault: Account<'info, TokenAccount>,
 
+    /// Mint of the invoice NFT that represents this receivable
     pub invoice_mint: Account<'info, Mint>,
 
     pub system_program: Program<'info, System>,
@@ -48,6 +48,7 @@ pub fn handler(
     due_date: i64,
     risk_rating: u8
 ) -> Result<()> {
+    // Initialize invoice state in a single place
     let mut invoice_account = ctx.accounts.invoice_account.load_init()?;
 
     invoice_account.issuer = ctx.accounts.issuer.key();
@@ -58,7 +59,7 @@ pub fn handler(
     invoice_account.invoice_mint = ctx.accounts.invoice_mint.key();
     invoice_account.status = InvoiceStatus::Funding as u8;
     invoice_account.contributor_count = 0;
-    // We don't need to initialize the contributors array, it's default value is fine.
+    // contributors array is zeroed by default; no extra init required
 
     msg!("Invoice {} listed for funding!", ctx.accounts.invoice_account.key());
 
