@@ -8,7 +8,7 @@ on:
       - '.github/workflows/whitepaper-pdf.yml'
   pull_request:
     paths:
-      - 'InvoFi_Whitepaper.md'
+      - 'Anchor/invo-fi/InvoFi_Whitepaper.md'
 
 jobs:
   build-pdf:
