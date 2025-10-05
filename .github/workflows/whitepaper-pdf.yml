@@ -27,7 +27,7 @@ jobs:
             -V colorlinks=true
             -V linkcolor=blue
             -o InvoFi_Whitepaper.pdf
-            InvoFi_Whitepaper.md
+            Anchor/invo-fi/InvoFi_Whitepaper.md
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
