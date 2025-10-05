@@ -1,0 +1,39 @@
+name: Build PDF Whitepaper
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'InvoFi_Whitepaper.md'
+      - '.github/workflows/whitepaper-pdf.yml'
+  pull_request:
+    paths:
+      - 'InvoFi_Whitepaper.md'
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate PDF with Pandoc (LaTeX)
+        uses: docker://pandoc/latex:3.1.11
+        with:
+          args: >-
+            --from gfm
+            --pdf-engine=xelatex
+            -V geometry:margin=1in
+            -V colorlinks=true
+            -V linkcolor=blue
+            -o InvoFi_Whitepaper.pdf
+            InvoFi_Whitepaper.md
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoFi_Whitepaper
+          path: InvoFi_Whitepaper.pdf
+          if-no-files-found: error
+
+
