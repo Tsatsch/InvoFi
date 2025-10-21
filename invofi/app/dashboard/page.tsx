@@ -470,6 +470,9 @@ export default function DashboardPage() {
                             <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(invoice.pdfUri!)}>
                               <Copy className="h-3 w-3 mr-1" /> Copy
                             </Button>
+                            <a href={invoice.pdfUri} target="_blank" rel="noopener noreferrer">
+                              <Button variant="secondary" size="sm">Open PDF</Button>
+                            </a>
                           </div>
                         )}
                         {invoice.metadataUri && (

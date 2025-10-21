@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase-client'; // For database interactions
+import { supabase } from '@/lib/supabase-client'; // For read-only or anon-safe operations
+import { supabaseAdmin } from '@/lib/supabase-admin'; // For server-side writes (service role)
 
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { createGenericFile, createSignerFromKeypair, signerIdentity, publicKey } from "@metaplex-foundation/umi";
@@ -167,7 +168,7 @@ export async function POST(
     console.log(`[API /tokenize] Metadata URI (Irys Gateway): ${metadataIrysGatewayUri}`);
 
     // 6. Update Invoice record with URIs and transition status
-     const { error: updateError } = await supabase
+     const { error: updateError } = await supabaseAdmin
        .from('invoices')
        .update({ 
          status: 'METADATA_UPLOADED',
