@@ -435,10 +435,10 @@ export default function DashboardPage() {
                         {/* Display PDF and Metadata URIs (short with copy) */}
                         {invoice.pdfUri && (
                           <div className="mt-2 text-xs flex items-center gap-2">
-                            <p className="font-medium">
-                              PDF URI: {""}
+                            <p className="font-medium break-all">
+                              PDF URI: {" "}
                               <a href={invoice.pdfUri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">
-                                {invoice.pdfUri.replace('https://gateway.irys.xyz/','').slice(0,8)}…{invoice.pdfUri.slice(-6)}
+                                {invoice.pdfUri}
                               </a>
                             </p>
                             <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(invoice.pdfUri!)}>
@@ -448,10 +448,10 @@ export default function DashboardPage() {
                         )}
                         {invoice.metadataUri && (
                           <div className="mt-1 text-xs flex items-center gap-2">
-                            <p className="font-medium">
-                              Metadata URI: {""}
+                            <p className="font-medium break-all">
+                              Metadata URI: {" "}
                               <a href={invoice.metadataUri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">
-                                {invoice.metadataUri.replace('https://gateway.irys.xyz/','').slice(0,8)}…{invoice.metadataUri.slice(-6)}
+                                {invoice.metadataUri}
                               </a>
                             </p>
                             <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(invoice.metadataUri!)}>
