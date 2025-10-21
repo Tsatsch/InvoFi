@@ -3,8 +3,14 @@ import { supabase } from '@/lib/supabase-client'; // For read-only or anon-safe 
 import { supabaseAdmin } from '@/lib/supabase-admin'; // For server-side writes (service role)
 
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { createGenericFile, createSignerFromKeypair, signerIdentity, publicKey } from "@metaplex-foundation/umi";
+import { createGenericFile, createSignerFromKeypair, signerIdentity, generateSigner } from "@metaplex-foundation/umi";
 import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
+import { mplTokenMetadata, createNft } from '@metaplex-foundation/mpl-token-metadata';
+import { PublicKey } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - JSON IDL import
+import invoFiIdl from '@/lib/idl/invo_fi.json';
 import { readFile } from "fs/promises"; // To read the wallet file
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'; // To generate a placeholder PDF
 import { generateInvoicePdfBytes } from '../../generate/route'; // Adjusted import path
@@ -59,6 +65,7 @@ export async function POST(
     const signer = createSignerFromKeypair(umi, signerKeypair);
 
     umi.use(irysUploader()); // Uses default Irys config (devnet)
+    umi.use(mplTokenMetadata());
     umi.use(signerIdentity(signer));
 
     console.log(`[API /tokenize] Umi initialized with signer: ${signer.publicKey}`);
@@ -78,9 +85,10 @@ export async function POST(
       return NextResponse.json({ error: 'Invoice not found or error fetching it', details: fetchError?.message }, { status: 404 });
     }
 
-    if (invoiceDb.status !== 'APPROVED_FOR_TOKENIZATION') {
-      console.warn(`[API /tokenize] Invoice ${invoiceId} status is ${invoiceDb.status}, not APPROVED_FOR_TOKENIZATION.`);
-      return NextResponse.json({ error: `Invoice is not approved for tokenization. Current status: ${invoiceDb.status}` }, { status: 400 });
+    const allowedStatuses = ['APPROVED_FOR_TOKENIZATION', 'METADATA_UPLOADED', 'minted_nft'];
+    if (!allowedStatuses.includes(invoiceDb.status)) {
+      console.warn(`[API /tokenize] Invoice ${invoiceId} status is ${invoiceDb.status}, not eligible.`);
+      return NextResponse.json({ error: `Invoice is not eligible. Current status: ${invoiceDb.status}` }, { status: 400 });
     }
     console.log(`[API /tokenize] Invoice ${invoiceId} validated with status: ${invoiceDb.status}`);
     console.log(`[API /tokenize] Raw invoice data from database:`, JSON.stringify(invoiceDb, null, 2));
@@ -114,17 +122,15 @@ export async function POST(
         subtotal_amount: invoiceDb.subtotal_amount !== null ? Number(invoiceDb.subtotal_amount) : 0,
     };
 
-    console.log('[API /tokenize] Generating actual PDF for invoice:', invoicePdfDataForGeneration.invoiceNumber);
-    console.log('[API /tokenize] Full invoice data being passed to PDF generator:', JSON.stringify(invoicePdfDataForGeneration, null, 2));
-    const pdfBytes = await generateInvoicePdfBytes(invoicePdfDataForGeneration);
-    const pdfFile = createGenericFile(pdfBytes, `invoice-${invoiceId}.pdf`, { // Using a more generic name
-        contentType: "application/pdf",
-    });
-    
-    console.log(`[API /tokenize] Uploading actual PDF for invoice ${invoiceId}...`);
-    const [pdfUri] = await umi.uploader.upload([pdfFile]);
-    const pdfIrysGatewayUri = "https://gateway.irys.xyz/" + pdfUri.split('/').pop();
-    console.log(`[API /tokenize] Actual PDF URI (Irys Gateway): ${pdfIrysGatewayUri}`);
+    // Reuse existing URIs if present, otherwise generate & upload
+    let pdfIrysGatewayUri = invoiceDb.pdf_uri as string | null;
+    let metadataIrysGatewayUri = invoiceDb.metadata_uri as string | null;
+    if (!pdfIrysGatewayUri || !metadataIrysGatewayUri) {
+      console.log('[API /tokenize] Generating/uploading PDF & metadata...');
+      const pdfBytes = await generateInvoicePdfBytes(invoicePdfDataForGeneration);
+      const pdfFile = createGenericFile(pdfBytes, `invoice-${invoiceId}.pdf`, { contentType: "application/pdf" });
+      const [pdfUri] = await umi.uploader.upload([pdfFile]);
+      pdfIrysGatewayUri = "https://gateway.irys.xyz/" + pdfUri.split('/').pop();
 
     // 4. Construct NFT Metadata
     const metadata = {
@@ -163,38 +169,135 @@ export async function POST(
 
     // 5. Upload Metadata JSON to Irys
     console.log(`[API /tokenize] Uploading metadata JSON for invoice ${invoiceId}...`);
-    const metadataUri = await umi.uploader.uploadJson(metadata);
-    const metadataIrysGatewayUri = "https://gateway.irys.xyz/" + metadataUri.split('/').pop();
-    console.log(`[API /tokenize] Metadata URI (Irys Gateway): ${metadataIrysGatewayUri}`);
+    if (!metadataIrysGatewayUri) {
+      const metadataUri = await umi.uploader.uploadJson(metadata);
+      metadataIrysGatewayUri = "https://gateway.irys.xyz/" + metadataUri.split('/').pop();
+      console.log(`[API /tokenize] Metadata URI (Irys Gateway): ${metadataIrysGatewayUri}`);
+    }
 
-    // 6. Update Invoice record with URIs and transition status
-     const { error: updateError } = await supabaseAdmin
-       .from('invoices')
-       .update({ 
-         status: 'METADATA_UPLOADED',
-         status_onchain: 'tokenized_metadata',
-         pdf_uri: pdfIrysGatewayUri, 
-         metadata_uri: metadataIrysGatewayUri,
-         tokenize_tx_sig: null,
-         mint_address: null,
-         invoice_pda: null
-       })
-       .eq('id', invoiceId);
+    // 6. Mint NFT for the invoice using Token Metadata
+    // Mint only if not minted yet
+    let mintedAddress = (invoiceDb.mint_address as string) || null;
+    let mintSig: string | null = null;
+    if (!mintedAddress) {
+      console.log(`[API /tokenize] Minting NFT for invoice ${invoiceId}...`);
+      const mintSigner = generateSigner(umi);
+      const sig = await createNft(umi, {
+        mint: mintSigner,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: metadataIrysGatewayUri!,
+        sellerFeeBasisPoints: 0,
+        creators: [{ address: umi.identity.publicKey, verified: true, share: 100 }]
+      }).sendAndConfirm(umi);
+      mintSig = sig;
+      mintedAddress = mintSigner.publicKey.toString();
+      console.log(`[API /tokenize] NFT minted. Mint: ${mintedAddress}, tx: ${mintSig}`);
+    } else {
+      console.log(`[API /tokenize] NFT already minted: ${mintedAddress}`);
+    }
 
-     if (updateError) {
-       console.error(`[API /tokenize] Failed to update invoice ${invoiceId} with metadata URIs:`, updateError.message);
-       // Not returning error for now to allow frontend to proceed with URIs, but log it
-     } else {
-       console.log(`[API /tokenize] Successfully logged (simulated update) for invoice ${invoiceId} with URIs.`);
-     }
+    // Compute Invoice PDA (off-chain) for convenience
+    let invoicePdaStr: string | null = null;
+    const programIdStr = process.env.NEXT_PUBLIC_PROGRAM_ID;
+    try {
+      if (programIdStr) {
+        const [pda] = PublicKey.findProgramAddressSync([
+          Buffer.from('invoice'),
+          new PublicKey(mintedAddress).toBuffer(),
+        ], new PublicKey(programIdStr));
+        invoicePdaStr = pda.toBase58();
+      }
+    } catch (e) {
+      console.warn('[API /tokenize] PDA computation skipped:', e);
+    }
+
+    // 7. Update DB with URIs and on-chain fields
+    const { error: updateError } = await supabaseAdmin
+      .from('invoices')
+      .update({ 
+        status: 'METADATA_UPLOADED',
+        status_onchain: mintedAddress ? 'minted_nft' : 'tokenized_metadata',
+        pdf_uri: pdfIrysGatewayUri, 
+        metadata_uri: metadataIrysGatewayUri,
+        tokenize_tx_sig: mintSig ?? invoiceDb.tokenize_tx_sig,
+        mint_address: mintedAddress ?? invoiceDb.mint_address,
+        invoice_pda: invoicePdaStr
+      })
+      .eq('id', invoiceId);
+
+    if (updateError) {
+      console.error(`[API /tokenize] Failed to persist on-chain fields for invoice ${invoiceId}:`, updateError.message);
+    }
 
 
-    // 7. Return URIs to the frontend
+    // 8. Optionally call Anchor list_invoice to register on-chain
+    try {
+      const programIdStr = process.env.NEXT_PUBLIC_PROGRAM_ID;
+      if (programIdStr && mintedAddress && !invoicePdaStr) {
+        const rpc = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+        const conn = new anchor.web3.Connection(rpc, 'confirmed');
+        const secretJson = process.env.WALLET_SECRET_KEY || process.env.SOLANA_WALLET_KEY;
+        if (!secretJson) throw new Error('Missing WALLET_SECRET_KEY for Anchor call');
+        const secret = Uint8Array.from(JSON.parse(secretJson));
+        const kp = anchor.web3.Keypair.fromSecretKey(secret);
+        const wallet = new anchor.Wallet(kp);
+        const provider = new anchor.AnchorProvider(conn, wallet, { commitment: 'confirmed' });
+        const programId = new anchor.web3.PublicKey(programIdStr);
+        const program = new anchor.Program(invoFiIdl as anchor.Idl, programId, provider);
+
+        const invoiceMintPk = new anchor.web3.PublicKey(mintedAddress);
+        const [invoicePda] = anchor.web3.PublicKey.findProgramAddressSync([
+          Buffer.from('invoice'), invoiceMintPk.toBuffer()
+        ], programId);
+        const [usdcVault] = anchor.web3.PublicKey.findProgramAddressSync([
+          Buffer.from('vault'), invoicePda.toBuffer()
+        ], programId);
+        const usdcMint = new anchor.web3.PublicKey(process.env.NEXT_PUBLIC_USDC_DEV_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+
+        const totalAmount = new anchor.BN(Math.round(Number(invoiceDb.total_amount || 0)));
+        const purchasePrice = new anchor.BN(Math.round(Number(invoiceDb.total_amount || 0) * 0.95));
+        const dueTs = new anchor.BN(Math.floor(new Date(invoiceDb.due_date || new Date()).getTime() / 1000));
+        const riskRating = 1; // medium by default
+
+        const tx = await program.methods
+          .listInvoice(totalAmount, purchasePrice, dueTs, riskRating)
+          .accounts({
+            issuer: kp.publicKey,
+            invoiceAccount: invoicePda,
+            usdcMint,
+            usdcVault,
+            invoiceMint: invoiceMintPk,
+            systemProgram: anchor.web3.SystemProgram.programId,
+            tokenProgram: new anchor.web3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          })
+          .rpc();
+
+        await supabaseAdmin
+          .from('invoices')
+          .update({
+            status_onchain: 'listed',
+            invoice_pda: invoicePda.toBase58(),
+            tokenize_tx_sig: tx,
+          })
+          .eq('id', invoiceId);
+
+        console.log(`[API /tokenize] Anchor list_invoice sent: ${tx}`);
+      }
+    } catch (e) {
+      console.warn('[API /tokenize] Anchor call skipped/failed:', e);
+    }
+
+    // 9. Return data to the frontend
     return NextResponse.json({ 
       message: `Metadata prepared for invoice ${invoiceId}. Ready for minting.`,
       invoiceId: invoiceId,
       pdfUri: pdfIrysGatewayUri,
       metadataUri: metadataIrysGatewayUri,
+      mintAddress: mintedAddress,
+      tokenizeTxSig: mintSig,
+      invoicePda: invoicePdaStr,
     }, { status: 200 });
 
   } catch (error: any) {
