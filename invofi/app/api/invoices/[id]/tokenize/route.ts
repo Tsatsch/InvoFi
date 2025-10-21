@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase-client'; // For database interactions
-import { HELIUS_API_KEY, SOLANA_WALLET_PATH } from '@/lib/config'; // Project config
 
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { createGenericFile, createSignerFromKeypair, signerIdentity, publicKey } from "@metaplex-foundation/umi";
@@ -30,20 +29,31 @@ export async function POST(
   try {
     console.log(`[API /tokenize] Attempting to tokenize invoice ID: ${invoiceId}`);
 
+    // Resolve RPC URL: prefer SOLANA_RPC_URL; otherwise, use Helius if provided; fallback to public devnet
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
-    if (!HELIUS_API_KEY)
-      throw new Error("Не найдена переменная окружения HELIUS_API_KEY!");
+    const rpcUrl = process.env.SOLANA_RPC_URL
+      || (HELIUS_API_KEY ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` : 'https://api.devnet.solana.com');
 
     // 1. Initialize Umi and Irys uploader
-    const umi = createUmi(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`);  //set devnet?
+    const umi = createUmi(rpcUrl);
     
-    //HELIUS
-    // Load wallet
-    //const walletJson = await readFile(SOLANA_WALLET_PATH, 'utf-8');
-    const walletJson = process.env.SOLANA_WALLET_KEY;
-    if (!walletJson)
-      throw new Error("Не найдена переменная окружения SOLANA_WALLET_KEY!");
-    const walletSecretKey = new Uint8Array(JSON.parse(walletJson));
+    // Load wallet: prefer WALLET_SECRET_KEY (JSON array), fallback to SOLANA_WALLET_KEY (JSON array), then file path via SOLANA_WALLET_PATH
+    let walletSecretKey: Uint8Array | undefined;
+    const envSecret = process.env.WALLET_SECRET_KEY || process.env.SOLANA_WALLET_KEY;
+    if (envSecret) {
+      try {
+        const parsed = JSON.parse(envSecret);
+        walletSecretKey = new Uint8Array(parsed);
+      } catch (e) {
+        throw new Error('WALLET_SECRET_KEY / SOLANA_WALLET_KEY should be JSON- of the private key');
+      }
+    } else if (process.env.SOLANA_WALLET_PATH) {
+      const walletJsonFromFile = await readFile(process.env.SOLANA_WALLET_PATH, 'utf-8');
+      walletSecretKey = new Uint8Array(JSON.parse(walletJsonFromFile));
+    } else {
+      throw new Error('Not found WALLET_SECRET_KEY (or SOLANA_WALLET_KEY) or SOLANA_WALLET_PATH');
+    }
+
     const signerKeypair = umi.eddsa.createKeypairFromSecretKey(walletSecretKey);
     const signer = createSignerFromKeypair(umi, signerKeypair);
 
@@ -156,16 +166,13 @@ export async function POST(
     const metadataIrysGatewayUri = "https://gateway.irys.xyz/" + metadataUri.split('/').pop();
     console.log(`[API /tokenize] Metadata URI (Irys Gateway): ${metadataIrysGatewayUri}`);
 
-    // 6. TODO: Update Invoice Status in DB (e.g., to 'METADATA_UPLOADED', and store URIs)
-    // This is a crucial step before actual minting.
-    // For now, we'll just log. In a real app, update the DB.
+    // 6. Update Invoice record with URIs and transition status
      const { error: updateError } = await supabase
        .from('invoices')
        .update({ 
-         // status: 'METADATA_UPLOADED', // Example new status
-         // pdf_uri: pdfIrysGatewayUri, 
-         // metadata_uri: metadataIrysGatewayUri 
-         // You might need to add these columns to your 'invoices' table
+         status: 'METADATA_UPLOADED',
+         pdf_uri: pdfIrysGatewayUri, 
+         metadata_uri: metadataIrysGatewayUri 
        })
        .eq('id', invoiceId);
 
