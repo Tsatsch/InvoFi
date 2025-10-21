@@ -171,8 +171,12 @@ export async function POST(
        .from('invoices')
        .update({ 
          status: 'METADATA_UPLOADED',
+         status_onchain: 'tokenized_metadata',
          pdf_uri: pdfIrysGatewayUri, 
-         metadata_uri: metadataIrysGatewayUri 
+         metadata_uri: metadataIrysGatewayUri,
+         tokenize_tx_sig: null,
+         mint_address: null,
+         invoice_pda: null
        })
        .eq('id', invoiceId);
 

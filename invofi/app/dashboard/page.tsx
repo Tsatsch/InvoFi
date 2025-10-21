@@ -120,7 +120,10 @@ export default function DashboardPage() {
             created_at,
             tax_rate,
             pdfUri:pdf_uri,
-            metadataUri:metadata_uri
+            metadataUri:metadata_uri,
+            mint_address,
+            invoice_pda,
+            status_onchain
           `)
           .eq('sender_name', address)
           // .headers({
@@ -155,6 +158,10 @@ export default function DashboardPage() {
             notes: dbInvoice.notes,
             pdfUri: dbInvoice.pdfUri ?? dbInvoice.pdf_uri ?? null,
             metadataUri: dbInvoice.metadataUri ?? dbInvoice.metadata_uri ?? null,
+            // onchain fields
+            mintAddress: dbInvoice.mint_address ?? null,
+            invoicePda: dbInvoice.invoice_pda ?? null,
+            statusOnchain: dbInvoice.status_onchain ?? null,
           }))
           setInvoices(mappedInvoices)
         }
@@ -432,6 +439,25 @@ export default function DashboardPage() {
                             <p className="font-medium text-green-500">-{invoice.discount}%</p>
                           </div>
                         </div>
+                        {/* On-chain fields */}
+                        {(invoice as any).statusOnchain && (
+                          <div className="mt-2 text-xs">
+                            <p className="font-medium">On-chain status: <span className="uppercase">{(invoice as any).statusOnchain}</span></p>
+                          </div>
+                        )}
+                        {(invoice as any).mintAddress && (
+                          <div className="mt-1 text-xs flex items-center gap-2 break-all">
+                            <p className="font-medium">Mint: <a className="text-blue-500 hover:underline" target="_blank" rel="noreferrer" href={`https://solscan.io/account/${(invoice as any).mintAddress}?cluster=devnet`}>{(invoice as any).mintAddress}</a></p>
+                            <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText((invoice as any).mintAddress)}>
+                              <Copy className="h-3 w-3 mr-1" /> Copy
+                            </Button>
+                          </div>
+                        )}
+                        {(invoice as any).invoicePda && (
+                          <div className="mt-1 text-xs break-all">
+                            <p className="font-medium">Invoice PDA: {(invoice as any).invoicePda}</p>
+                          </div>
+                        )}
                         {/* Display PDF and Metadata URIs (short with copy) */}
                         {invoice.pdfUri && (
                           <div className="mt-2 text-xs flex items-center gap-2">
