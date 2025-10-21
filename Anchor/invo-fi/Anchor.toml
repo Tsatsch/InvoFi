@@ -8,16 +8,16 @@ skip-lint = false
 idl-build = true
 
 [programs.localnet]
-invo_fi = "inVoK3cvQJ2y2xR26N62q21sJcTj1S2tV4gys1mXg2T"
+invo_fi = "D7aLtLd2LNkZrwzmGe6sfs9YjRbLh6fiymtUmCnYHn84"
 
 [programs.devnet]
-invo_fi = "inVoK3cvQJ2y2xR26N62q21sJcTj1S2tV4gys1mXg2T"
+invo_fi = "D7aLtLd2LNkZrwzmGe6sfs9YjRbLh6fiymtUmCnYHn84"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
