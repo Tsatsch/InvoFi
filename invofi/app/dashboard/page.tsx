@@ -519,11 +519,12 @@ export default function DashboardPage() {
                                         : inv
                                     )
                                   )
-                                } catch (error: any) {
-                                  console.error("Tokenization failed:", error)
+                                } catch (error) {
+                                  const err = error as any
+                                  console.error("Tokenization failed:", err)
                                   toast({
                                     title: "Tokenization Failed",
-                                    description: error.message || "An unexpected error occurred.",
+                                    description: err?.message || "An unexpected error occurred.",
                                     variant: "destructive",
                                   })
                                 } finally {

@@ -175,24 +175,37 @@ export async function POST(
       console.log(`[API /tokenize] Metadata URI (Irys Gateway): ${metadataIrysGatewayUri}`);
     }
 
+    // Close outer generation/upload block
+    }
+
     // 6. Mint NFT for the invoice using Token Metadata
     // Mint only if not minted yet
     let mintedAddress = (invoiceDb.mint_address as string) || null;
     let mintSig: string | null = null;
+    let mintError: string | null = null;
     if (!mintedAddress) {
       console.log(`[API /tokenize] Minting NFT for invoice ${invoiceId}...`);
-      const mintSigner = generateSigner(umi);
-      const sig = await createNft(umi, {
-        mint: mintSigner,
-        name: metadata.name,
-        symbol: metadata.symbol,
-        uri: metadataIrysGatewayUri!,
-        sellerFeeBasisPoints: 0,
-        creators: [{ address: umi.identity.publicKey, verified: true, share: 100 }]
-      }).sendAndConfirm(umi);
-      mintSig = sig;
-      mintedAddress = mintSigner.publicKey.toString();
-      console.log(`[API /tokenize] NFT minted. Mint: ${mintedAddress}, tx: ${mintSig}`);
+      try {
+        const mintSigner = generateSigner(umi);
+        const nftName = `Invoice ${invoiceDb.invoice_number || invoiceId}`;
+        const nftSymbol = "INVOFI";
+        const sig = await createNft(umi, {
+          mint: mintSigner,
+          name: nftName,
+          symbol: nftSymbol,
+          uri: metadataIrysGatewayUri!,
+          sellerFeeBasisPoints: 0,
+          creators: [{ address: umi.identity.publicKey, verified: true, share: 100 }]
+        }).sendAndConfirm(umi);
+        mintSig = sig;
+        mintedAddress = mintSigner.publicKey.toString();
+        console.log(`[API /tokenize] NFT minted. Mint: ${mintedAddress}, tx: ${mintSig}`);
+      } catch (e) {
+        const err = e as any;
+        mintError = err?.message ? String(err.message) : String(err);
+        console.error('[API /tokenize] NFT mint failed:', err);
+        // Intentionally continue so that metadata/pdf URIs are persisted and the process is idempotent.
+      }
     } else {
       console.log(`[API /tokenize] NFT already minted: ${mintedAddress}`);
     }
@@ -201,7 +214,7 @@ export async function POST(
     let invoicePdaStr: string | null = null;
     const programIdStr = process.env.NEXT_PUBLIC_PROGRAM_ID;
     try {
-      if (programIdStr) {
+      if (programIdStr && mintedAddress) {
         const [pda] = PublicKey.findProgramAddressSync([
           Buffer.from('invoice'),
           new PublicKey(mintedAddress).toBuffer(),
@@ -298,21 +311,23 @@ export async function POST(
       mintAddress: mintedAddress,
       tokenizeTxSig: mintSig,
       invoicePda: invoicePdaStr,
+      mintError,
     }, { status: 200 });
 
-  } catch (error: any) {
-    console.error(`[API /tokenize] Error during tokenization process for invoice ${invoiceId}:`, error);
+  } catch (error) {
+    const err = error as any;
+    console.error(`[API /tokenize] Error during tokenization process for invoice ${invoiceId}:`, err);
     // Check for Umi specific errors if possible, otherwise generic
     let errorMessage = 'Failed to tokenize invoice';
-    if (error.message) {
-        errorMessage = error.message;
-    } else if (typeof error === 'string') {
-        errorMessage = error;
+    if (err?.message) {
+        errorMessage = err.message;
+    } else if (typeof err === 'string') {
+        errorMessage = err;
     }
     
     // Attempt to provide more specific UMI errors if available in logs
-    if (error.cause) {
-        console.error("[API /tokenize] UMI Error Cause:", error.cause);
+    if ((err as any)?.cause) {
+        console.error("[API /tokenize] UMI Error Cause:", (err as any).cause);
     }
     
     return NextResponse.json({ 

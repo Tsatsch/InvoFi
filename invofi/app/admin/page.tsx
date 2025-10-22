@@ -160,11 +160,12 @@ export default function AdminPage() {
         title: "Invoice Approved",
         description: "The invoice has been successfully approved and is now ready for tokenization.",
       })
-    } catch (error: any) {
-      console.error("Failed to approve invoice:", error)
+    } catch (error) {
+      const err = error as any
+      console.error("Failed to approve invoice:", err)
       toast({
         title: "Approval Failed",
-        description: error.message || "Could not approve the invoice. Please try again.",
+        description: err?.message || "Could not approve the invoice. Please try again.",
         variant: "destructive",
       })
     }
