@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'InvoFi/Anchor/invo-fi/InvoFi_Whitepaper.md'
+      - 'Anchor/invo-fi/InvoFi_Whitepaper.md'
       - '.github/workflows/whitepaper-pdf.yml'
   pull_request:
     paths:
-      - 'InvoFi/Anchor/invo-fi/InvoFi_Whitepaper.md'
+      - 'Anchor/invo-fi/InvoFi_Whitepaper.md'
 
 jobs:
   build-pdf:
@@ -27,7 +27,7 @@ jobs:
             -V colorlinks=true
             -V linkcolor=blue
             -o InvoFi_Whitepaper.pdf
-            InvoFi/Anchor/invo-fi/InvoFi_Whitepaper.md
+            Anchor/invo-fi/InvoFi_Whitepaper.md
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
