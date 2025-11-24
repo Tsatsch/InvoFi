@@ -6,7 +6,7 @@ declare_id!("D7aLtLd2LNkZrwzmGe6sfs9YjRbLh6fiymtUmCnYHn84");
 mod constants;
 mod error;
 mod instructions;
-mod state;
+pub mod state;
 
 #[program]
 pub mod invo_fi {
