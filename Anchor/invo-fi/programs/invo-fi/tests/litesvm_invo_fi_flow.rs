@@ -1,13 +1,17 @@
 use anchor_lang::{
-    solana_program::{
-        instruction::AccountMeta as AnchorAccountMeta, program_pack::Pack, system_program,
-    },
+    solana_program::instruction::AccountMeta as AnchorAccountMeta,
     AccountDeserialize, InstructionData, ToAccountMetas,
 };
 use anchor_spl::token;
-use anchor_spl::token::spl_token::state::{Account as SplTokenAccount, AccountState, Mint as SplMint};
 use invo_fi::state::invoice::{Invoice, InvoiceStatus};
 use litesvm::LiteSVM;
+use litesvm_token::{
+    get_spl_account,
+    spl_token::state::Account as TokenAccount,
+    CreateAccount as TokenCreateAccount,
+    CreateMint,
+    MintTo,
+};
 use solana_account::Account;
 use solana_instruction::{account_meta::AccountMeta, Instruction};
 use solana_keypair::Keypair;
@@ -15,7 +19,14 @@ use solana_message::Message;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
 use solana_transaction::Transaction;
+use solana_sdk_ids::system_program;
 use std::{error::Error, io, path::Path};
+
+const DEFAULT_AIRDROP_LAMPORTS: u64 = 5_000_000_000;
+const DEFAULT_DEBTOR_USDC_BALANCE: u64 = 2_000_000_000;
+const USDC_DECIMALS: u8 = 6;
+
+type TestResult<T = ()> = Result<T, Box<dyn Error>>;
 
 fn program_artifact_path() -> &'static str {
     concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/deploy/invo_fi.so")
@@ -29,6 +40,14 @@ fn to_anchor_pubkey(pubkey: &Pubkey) -> anchor_lang::solana_program::pubkey::Pub
     anchor_lang::solana_program::pubkey::Pubkey::new_from_array(pubkey.to_bytes())
 }
 
+fn to_solana_pubkey(pubkey: &anchor_lang::solana_program::pubkey::Pubkey) -> Pubkey {
+    Pubkey::new_from_array(pubkey.to_bytes())
+}
+
+fn system_program_anchor_id() -> anchor_lang::solana_program::pubkey::Pubkey {
+    anchor_lang::solana_program::pubkey::Pubkey::new_from_array(system_program::ID.to_bytes())
+}
+
 fn convert_metas(metas: Vec<AnchorAccountMeta>) -> Vec<AccountMeta> {
     metas
         .into_iter()
@@ -38,80 +57,6 @@ fn convert_metas(metas: Vec<AnchorAccountMeta>) -> Vec<AccountMeta> {
             is_writable: meta.is_writable,
         })
         .collect()
-}
-
-fn pack_mint_account(mint: SplMint) -> Vec<u8> {
-    let mut data = vec![0u8; SplMint::LEN];
-    SplMint::pack(mint, &mut data).unwrap();
-    data
-}
-
-fn pack_token_account(account: SplTokenAccount) -> Vec<u8> {
-    let mut data = vec![0u8; SplTokenAccount::LEN];
-    SplTokenAccount::pack(account, &mut data).unwrap();
-    data
-}
-
-fn create_mock_mint_account(
-    svm: &mut LiteSVM,
-    mint: Pubkey,
-    mint_authority: Pubkey,
-    decimals: u8,
-) -> Result<(), Box<dyn Error>> {
-    let rent = svm.minimum_balance_for_rent_exemption(SplMint::LEN);
-    let mint_data = pack_mint_account(SplMint {
-        mint_authority: anchor_lang::solana_program::program_option::COption::Some(
-            to_anchor_pubkey(&mint_authority),
-        ),
-        supply: 1_000_000_000_000,
-        decimals,
-        is_initialized: true,
-        freeze_authority: anchor_lang::solana_program::program_option::COption::None,
-    });
-    svm.set_account(
-        mint,
-        Account {
-            lamports: rent,
-            data: mint_data,
-            owner: Pubkey::new_from_array(token::ID.to_bytes()),
-            executable: false,
-            rent_epoch: 0,
-        },
-    )
-    .map_err(|err| format!("failed to set mint account: {err:?}"))?;
-    Ok(())
-}
-
-fn create_mock_token_account(
-    svm: &mut LiteSVM,
-    account_pubkey: Pubkey,
-    mint: Pubkey,
-    owner: Pubkey,
-    amount: u64,
-) -> Result<(), Box<dyn Error>> {
-    let rent = svm.minimum_balance_for_rent_exemption(SplTokenAccount::LEN);
-    let account_data = pack_token_account(SplTokenAccount {
-        mint: to_anchor_pubkey(&mint),
-        owner: to_anchor_pubkey(&owner),
-        amount,
-        delegate: anchor_lang::solana_program::program_option::COption::None,
-        state: AccountState::Initialized,
-        is_native: anchor_lang::solana_program::program_option::COption::None,
-        delegated_amount: 0,
-        close_authority: anchor_lang::solana_program::program_option::COption::None,
-    });
-    svm.set_account(
-        account_pubkey,
-        Account {
-            lamports: rent,
-            data: account_data,
-            owner: Pubkey::new_from_array(token::ID.to_bytes()),
-            executable: false,
-            rent_epoch: 0,
-        },
-    )
-    .map_err(|err| format!("failed to set token account: {err:?}"))?;
-    Ok(())
 }
 
 fn load_program_or_skip() -> Option<LiteSVM> {
@@ -130,328 +75,406 @@ fn load_program_or_skip() -> Option<LiteSVM> {
     Some(svm)
 }
 
-fn request_airdrop(
-    svm: &mut LiteSVM,
-    recipient: &Pubkey,
-    amount: u64,
-) -> Result<(), Box<dyn Error>> {
-    svm.airdrop(recipient, amount).map_err(|err| {
-        io::Error::new(io::ErrorKind::Other, format!("airdrop failed: {err:?}"))
-    })?;
-    Ok(())
-}
-
-fn fetch_invoice(svm: &LiteSVM, invoice_pda: &Pubkey) -> Invoice {
-    let account = svm
-        .get_account(invoice_pda)
-        .expect("invoice account must exist");
-    let mut data_slice: &[u8] = account.data.as_slice();
-    Invoice::try_deserialize(&mut data_slice).expect("invoice deserialize")
-}
-
-fn list_invoice_ix(
+struct TestHarness {
+    svm: LiteSVM,
     program_id: Pubkey,
-    issuer: &Keypair,
-    invoice_pda: Pubkey,
-    usdc_mint: Pubkey,
-    usdc_vault: Pubkey,
-    invoice_mint: Pubkey,
+}
+
+impl TestHarness {
+    fn new() -> Option<Self> {
+        load_program_or_skip().map(|svm| Self {
+            svm,
+            program_id: program_id(),
+        })
+    }
+
+    fn svm(&self) -> &LiteSVM {
+        &self.svm
+    }
+
+    fn svm_mut(&mut self) -> &mut LiteSVM {
+        &mut self.svm
+    }
+
+    fn program_id(&self) -> Pubkey {
+        self.program_id
+    }
+
+    fn airdrop(&mut self, recipient: &Pubkey, amount: u64) -> TestResult {
+        self.svm
+            .airdrop(recipient, amount)
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("airdrop failed: {err:?}")))?;
+        Ok(())
+    }
+
+    fn send(&mut self, ix: Instruction, signer: &Keypair) -> TestResult {
+        let blockhash = self.svm.latest_blockhash();
+        let message = Message::new(&[ix], Some(&signer.pubkey()));
+        let mut tx = Transaction::new_unsigned(message);
+        tx.sign(&[signer], blockhash);
+        self.svm
+            .send_transaction(tx)
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("transaction failed: {err:?}")))?;
+        Ok(())
+    }
+
+    fn account(&self, key: &Pubkey) -> Option<Account> {
+        self.svm.get_account(key)
+    }
+}
+
+#[derive(Clone, Copy)]
+struct InvoiceTerms {
     total_amount: u64,
     purchase_price: u64,
     due_date: i64,
     risk_rating: u8,
-) -> Instruction {
-    let accounts = invo_fi::accounts::ListInvoice {
-        issuer: to_anchor_pubkey(&issuer.pubkey()),
-        invoice_account: to_anchor_pubkey(&invoice_pda),
-        usdc_mint: to_anchor_pubkey(&usdc_mint),
-        usdc_vault: to_anchor_pubkey(&usdc_vault),
-        invoice_mint: to_anchor_pubkey(&invoice_mint),
-        system_program: system_program::ID,
-        token_program: anchor_spl::token::ID,
-        rent: anchor_lang::solana_program::sysvar::rent::ID,
-    };
-    Instruction {
-        program_id,
-        accounts: convert_metas(accounts.to_account_metas(Some(true))),
-        data: invo_fi::instruction::ListInvoice {
-            total_amount,
-            purchase_price,
-            due_date,
-            risk_rating,
+}
+
+impl Default for InvoiceTerms {
+    fn default() -> Self {
+        Self {
+            total_amount: 1_200_000,
+            purchase_price: 1_000_000,
+            due_date: 1_700_000_000,
+            risk_rating: 3,
         }
-        .data(),
     }
 }
 
-fn contribute_ix(
-    program_id: Pubkey,
-    contributor: &Keypair,
+#[derive(Clone)]
+struct ScenarioConfig {
+    invoice_terms: InvoiceTerms,
+    lp_contributions: Vec<u64>,
+    debtor_balance: u64,
+}
+
+impl Default for ScenarioConfig {
+    fn default() -> Self {
+        Self {
+            invoice_terms: InvoiceTerms::default(),
+            lp_contributions: Vec::new(),
+            debtor_balance: DEFAULT_DEBTOR_USDC_BALANCE,
+        }
+    }
+}
+
+impl ScenarioConfig {
+    fn with_lp_contributions(mut self, contributions: Vec<u64>) -> Self {
+        self.lp_contributions = contributions;
+        self
+    }
+
+    fn with_terms(mut self, terms: InvoiceTerms) -> Self {
+        self.invoice_terms = terms;
+        self
+    }
+
+    fn with_debtor_balance(mut self, balance: u64) -> Self {
+        self.debtor_balance = balance;
+        self
+    }
+}
+
+struct ActorWallet {
+    signer: Keypair,
+    usdc_account: Pubkey,
+}
+
+impl ActorWallet {
+    fn pubkey(&self) -> Pubkey {
+        self.signer.pubkey()
+    }
+}
+
+struct LiquidityProvider {
+    wallet: ActorWallet,
+    planned_contribution: u64,
+}
+
+struct InvoiceFixture {
+    harness: TestHarness,
+    config: ScenarioConfig,
+    invoice_mint: Pubkey,
+    usdc_mint: Pubkey,
     invoice_pda: Pubkey,
-    contributor_usdc: Pubkey,
     usdc_vault: Pubkey,
-    amount: u64,
-) -> Instruction {
-    let accounts = invo_fi::accounts::Contribute {
-        contributor: to_anchor_pubkey(&contributor.pubkey()),
-        contributor_usdc_account: to_anchor_pubkey(&contributor_usdc),
-        invoice_account: to_anchor_pubkey(&invoice_pda),
-        usdc_vault: to_anchor_pubkey(&usdc_vault),
-        token_program: anchor_spl::token::ID,
-    };
-    Instruction {
-        program_id,
-        accounts: convert_metas(accounts.to_account_metas(Some(true))),
-        data: invo_fi::instruction::Contribute { amount }.data(),
+    issuer: ActorWallet,
+    debtor: ActorWallet,
+    lps: Vec<LiquidityProvider>,
+}
+
+impl InvoiceFixture {
+    fn setup(config: ScenarioConfig) -> TestResult<Option<Self>> {
+        let mut harness = match TestHarness::new() {
+            Some(h) => h,
+            None => return Ok(None),
+        };
+
+        let issuer = Keypair::new();
+        let debtor = Keypair::new();
+
+        for signer in [&issuer, &debtor] {
+            harness.airdrop(&signer.pubkey(), DEFAULT_AIRDROP_LAMPORTS)?;
+        }
+
+        let invoice_mint = CreateMint::new(harness.svm_mut(), &issuer)
+            .authority(&issuer.pubkey())
+            .decimals(0)
+            .send()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("invoice mint failed: {err:?}")))?;
+
+        let usdc_mint = CreateMint::new(harness.svm_mut(), &issuer)
+            .authority(&issuer.pubkey())
+            .decimals(USDC_DECIMALS)
+            .send()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("usdc mint failed: {err:?}")))?;
+
+        let (invoice_pda, _) =
+            Pubkey::find_program_address(&[b"invoice", invoice_mint.as_ref()], &harness.program_id());
+        let (usdc_vault, _) =
+            Pubkey::find_program_address(&[b"vault", invoice_pda.as_ref()], &harness.program_id());
+
+        let issuer_wallet = create_wallet_with_tokens(&mut harness, issuer, &usdc_mint, None, 0)?;
+        let debtor_wallet = create_wallet_with_tokens(
+            &mut harness,
+            debtor,
+            &usdc_mint,
+            Some(&issuer_wallet.signer),
+            config.debtor_balance,
+        )?;
+
+        let mut lps = Vec::with_capacity(config.lp_contributions.len());
+        for contribution in &config.lp_contributions {
+            let lp_signer = Keypair::new();
+            harness.airdrop(&lp_signer.pubkey(), DEFAULT_AIRDROP_LAMPORTS)?;
+            let wallet = create_wallet_with_tokens(
+                &mut harness,
+                lp_signer,
+                &usdc_mint,
+                Some(&issuer_wallet.signer),
+                *contribution,
+            )?;
+            lps.push(LiquidityProvider {
+                wallet,
+                planned_contribution: *contribution,
+            });
+        }
+
+        Ok(Some(Self {
+            harness,
+            config,
+            invoice_mint,
+            usdc_mint,
+            invoice_pda,
+            usdc_vault,
+            issuer: issuer_wallet,
+            debtor: debtor_wallet,
+            lps,
+        }))
+    }
+
+    fn list_invoice(&mut self) -> TestResult {
+        let terms = self.config.invoice_terms;
+        let accounts = invo_fi::accounts::ListInvoice {
+            issuer: to_anchor_pubkey(&self.issuer.pubkey()),
+            invoice_account: to_anchor_pubkey(&self.invoice_pda),
+            usdc_mint: to_anchor_pubkey(&self.usdc_mint),
+            usdc_vault: to_anchor_pubkey(&self.usdc_vault),
+            invoice_mint: to_anchor_pubkey(&self.invoice_mint),
+            system_program: system_program_anchor_id(),
+            token_program: anchor_spl::token::ID,
+            rent: anchor_lang::solana_program::sysvar::rent::ID,
+        };
+        let ix = Instruction {
+            program_id: self.harness.program_id(),
+            accounts: convert_metas(accounts.to_account_metas(Some(true))),
+            data: invo_fi::instruction::ListInvoice {
+                total_amount: terms.total_amount,
+                purchase_price: terms.purchase_price,
+                due_date: terms.due_date,
+                risk_rating: terms.risk_rating,
+            }
+            .data(),
+        };
+        self.harness.send(ix, &self.issuer.signer)
+    }
+
+    fn contribute_all(&mut self) -> TestResult {
+        for lp in &self.lps {
+            let accounts = invo_fi::accounts::Contribute {
+                contributor: to_anchor_pubkey(&lp.wallet.pubkey()),
+                contributor_usdc_account: to_anchor_pubkey(&lp.wallet.usdc_account),
+                invoice_account: to_anchor_pubkey(&self.invoice_pda),
+                usdc_vault: to_anchor_pubkey(&self.usdc_vault),
+                token_program: anchor_spl::token::ID,
+            };
+            let ix = Instruction {
+                program_id: self.harness.program_id(),
+                accounts: convert_metas(accounts.to_account_metas(Some(true))),
+                data: invo_fi::instruction::Contribute {
+                    amount: lp.planned_contribution,
+                }
+                .data(),
+            };
+            self.harness.send(ix, &lp.wallet.signer)?;
+        }
+        Ok(())
+    }
+
+    fn claim_funding(&mut self) -> TestResult {
+        let accounts = invo_fi::accounts::ClaimFunding {
+            issuer: to_anchor_pubkey(&self.issuer.pubkey()),
+            issuer_usdc_account: to_anchor_pubkey(&self.issuer.usdc_account),
+            invoice_account: to_anchor_pubkey(&self.invoice_pda),
+            usdc_vault: to_anchor_pubkey(&self.usdc_vault),
+            token_program: anchor_spl::token::ID,
+        };
+        let ix = Instruction {
+            program_id: self.harness.program_id(),
+            accounts: convert_metas(accounts.to_account_metas(Some(true))),
+            data: invo_fi::instruction::ClaimFunding {}.data(),
+        };
+        self.harness.send(ix, &self.issuer.signer)
+    }
+
+    fn repay_full(&mut self) -> TestResult {
+        let contributor_accounts: Vec<Pubkey> = self
+            .lps
+            .iter()
+            .map(|lp| lp.wallet.usdc_account)
+            .collect();
+
+        let accounts = invo_fi::accounts::RepayAndDistribute {
+            payer: to_anchor_pubkey(&self.debtor.pubkey()),
+            payer_usdc_account: to_anchor_pubkey(&self.debtor.usdc_account),
+            invoice_account: to_anchor_pubkey(&self.invoice_pda),
+            usdc_vault: to_anchor_pubkey(&self.usdc_vault),
+            token_program: anchor_spl::token::ID,
+        };
+        let mut metas = convert_metas(accounts.to_account_metas(Some(true)));
+        metas.push(AccountMeta::new_readonly(
+            to_solana_pubkey(&token::ID),
+            false,
+        ));
+        metas.push(AccountMeta::new(self.usdc_vault, false));
+        metas.push(AccountMeta::new_readonly(self.invoice_pda, false));
+        for acc in contributor_accounts {
+            metas.push(AccountMeta::new(acc, false));
+        }
+
+        let ix = Instruction {
+            program_id: self.harness.program_id(),
+            accounts: metas,
+            data: invo_fi::instruction::RepayAndDistribute {}.data(),
+        };
+        self.harness.send(ix, &self.debtor.signer)
+    }
+
+    fn invoice_state(&self) -> Invoice {
+        let account = self
+            .harness
+            .account(&self.invoice_pda)
+            .expect("invoice must exist");
+        let mut data_slice: &[u8] = account.data.as_slice();
+        Invoice::try_deserialize(&mut data_slice).expect("invoice deserialize")
+    }
+
+    fn token_amount(&self, account: &Pubkey) -> u64 {
+        get_spl_account::<TokenAccount>(self.harness.svm(), account)
+            .expect("token account")
+            .amount
     }
 }
 
-fn claim_funding_ix(
-    program_id: Pubkey,
-    issuer: &Keypair,
-    invoice_pda: Pubkey,
-    issuer_usdc: Pubkey,
-    usdc_vault: Pubkey,
-) -> Instruction {
-    let accounts = invo_fi::accounts::ClaimFunding {
-        issuer: to_anchor_pubkey(&issuer.pubkey()),
-        issuer_usdc_account: to_anchor_pubkey(&issuer_usdc),
-        invoice_account: to_anchor_pubkey(&invoice_pda),
-        usdc_vault: to_anchor_pubkey(&usdc_vault),
-        token_program: anchor_spl::token::ID,
-    };
-    Instruction {
-        program_id,
-        accounts: convert_metas(accounts.to_account_metas(Some(true))),
-        data: invo_fi::instruction::ClaimFunding {}.data(),
-    }
-}
+fn create_wallet_with_tokens(
+    harness: &mut TestHarness,
+    signer: Keypair,
+    mint: &Pubkey,
+    mint_authority: Option<&Keypair>,
+    initial_amount: u64,
+) -> TestResult<ActorWallet> {
+    let token_account = TokenCreateAccount::new(harness.svm_mut(), &signer, mint)
+        .owner(&signer.pubkey())
+        .send()
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("create token account failed: {err:?}")))?;
 
-fn repay_and_distribute_ix(
-    program_id: Pubkey,
-    payer: &Keypair,
-    invoice_pda: Pubkey,
-    payer_usdc: Pubkey,
-    usdc_vault: Pubkey,
-    contributor_accounts: &[Pubkey],
-) -> Instruction {
-    let accounts = invo_fi::accounts::RepayAndDistribute {
-        payer: to_anchor_pubkey(&payer.pubkey()),
-        payer_usdc_account: to_anchor_pubkey(&payer_usdc),
-        invoice_account: to_anchor_pubkey(&invoice_pda),
-        usdc_vault: to_anchor_pubkey(&usdc_vault),
-        token_program: anchor_spl::token::ID,
-    };
-    let mut metas = convert_metas(accounts.to_account_metas(Some(true)));
-    metas.push(AccountMeta::new_readonly(
-        Pubkey::new_from_array(token::ID.to_bytes()),
-        false,
-    ));
-    metas.push(AccountMeta::new(usdc_vault, false));
-    metas.push(AccountMeta::new_readonly(invoice_pda, false));
-    for account in contributor_accounts {
-        metas.push(AccountMeta::new(*account, false));
+    if initial_amount > 0 {
+        let authority = mint_authority.unwrap_or(&signer);
+        MintTo::new(harness.svm_mut(), authority, mint, &token_account, initial_amount)
+            .owner(authority)
+            .send()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("mint_to failed: {err:?}")))?;
     }
 
-    Instruction {
-        program_id,
-        accounts: metas,
-        data: invo_fi::instruction::RepayAndDistribute {}.data(),
-    }
-}
-
-fn send_ix(
-    svm: &mut LiteSVM,
-    ix: Instruction,
-    signer: &Keypair,
-) -> Result<(), Box<dyn Error>> {
-    let blockhash = svm.latest_blockhash();
-    let message = Message::new(&[ix], Some(&signer.pubkey()));
-    let mut tx = Transaction::new_unsigned(message);
-    tx.sign(&[signer], blockhash);
-    if let Err(err) = svm.send_transaction(tx) {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::Other,
-            format!("transaction failed: {err:?}"),
-        )));
-    }
-    Ok(())
+    Ok(ActorWallet {
+        signer,
+        usdc_account: token_account,
+    })
 }
 
 #[test]
-fn list_invoice_initializes_state() -> Result<(), Box<dyn Error>> {
-    let mut svm = match load_program_or_skip() {
-        Some(vm) => vm,
-        None => return Ok(()),
+fn list_invoice_initializes_state() -> TestResult {
+    let config = ScenarioConfig::default();
+    let Some(mut fixture) = InvoiceFixture::setup(config)? else {
+        return Ok(());
     };
 
-    let program_id = program_id();
-    let issuer = Keypair::new();
-    request_airdrop(&mut svm, &issuer.pubkey(), 5_000_000_000)?;
+    fixture.list_invoice()?;
 
-    let invoice_mint = Pubkey::new_unique();
-    let usdc_mint = Pubkey::new_unique();
-    create_mock_mint_account(&mut svm, invoice_mint, issuer.pubkey(), 0)?;
-    create_mock_mint_account(&mut svm, usdc_mint, issuer.pubkey(), 6)?;
-
-    let (invoice_pda, _) =
-        Pubkey::find_program_address(&[b"invoice", invoice_mint.as_ref()], &program_id);
-    let (usdc_vault, _) =
-        Pubkey::find_program_address(&[b"vault", invoice_pda.as_ref()], &program_id);
-
-    let total_amount = 1_200_000;
-    let purchase_price = 1_000_000;
-    let due_date = 1_700_000_000;
-    let risk_rating = 3;
-
-    let ix = list_invoice_ix(
-        program_id,
-        &issuer,
-        invoice_pda,
-        usdc_mint,
-        usdc_vault,
-        invoice_mint,
-        total_amount,
-        purchase_price,
-        due_date,
-        risk_rating,
-    );
-    send_ix(&mut svm, ix, &issuer)?;
-
-    let invoice = fetch_invoice(&svm, &invoice_pda);
-    assert_eq!(invoice.issuer, to_anchor_pubkey(&issuer.pubkey()));
-    assert_eq!(invoice.total_amount, total_amount);
-    assert_eq!(invoice.purchase_price, purchase_price);
-    assert_eq!(invoice.due_date, due_date);
-    assert_eq!(invoice.risk_rating, risk_rating);
+    let invoice = fixture.invoice_state();
+    let terms = fixture.config.invoice_terms;
+    assert_eq!(invoice.issuer, to_anchor_pubkey(&fixture.issuer.pubkey()));
+    assert_eq!(invoice.total_amount, terms.total_amount);
+    assert_eq!(invoice.purchase_price, terms.purchase_price);
+    assert_eq!(invoice.due_date, terms.due_date);
+    assert_eq!(invoice.risk_rating, terms.risk_rating);
     assert_eq!(invoice.status, InvoiceStatus::Funding as u8);
     assert_eq!(invoice.total_funded_amount, 0);
     assert_eq!(invoice.contributor_count, 0);
 
-    let vault_account = svm
-        .get_account(&usdc_vault)
-        .expect("vault must exist after list");
-    let spl = SplTokenAccount::unpack(&vault_account.data).unwrap();
-    assert_eq!(spl.amount, 0);
-    assert_eq!(spl.owner, to_anchor_pubkey(&invoice_pda));
+    let vault = fixture
+        .harness
+        .account(&fixture.usdc_vault)
+        .expect("vault exists");
+    assert_eq!(vault.owner, to_solana_pubkey(&token::ID));
 
     Ok(())
 }
 
 #[test]
-fn full_finance_and_repayment_flow() -> Result<(), Box<dyn Error>> {
-    let mut svm = match load_program_or_skip() {
-        Some(vm) => vm,
-        None => return Ok(()),
+fn full_finance_and_repayment_flow() -> TestResult {
+    let config = ScenarioConfig::default()
+        .with_lp_contributions(vec![600_000, 400_000])
+        .with_terms(InvoiceTerms {
+            total_amount: 1_200_000,
+            purchase_price: 1_000_000,
+            ..InvoiceTerms::default()
+        })
+        .with_debtor_balance(1_200_000);
+
+    let Some(mut fixture) = InvoiceFixture::setup(config)? else {
+        return Ok(());
     };
 
-    let program_id = program_id();
-    let issuer = Keypair::new();
-    let lp_a = Keypair::new();
-    let lp_b = Keypair::new();
-    let debtor = Keypair::new();
+    fixture.list_invoice()?;
+    fixture.contribute_all()?;
+    fixture.claim_funding()?;
+    fixture.repay_full()?;
 
-    for kp in [&issuer, &lp_a, &lp_b, &debtor] {
-        request_airdrop(&mut svm, &kp.pubkey(), 5_000_000_000)?;
-    }
+    let invoice = fixture.invoice_state();
+    assert_eq!(invoice.status, InvoiceStatus::Repaid as u8);
 
-    let invoice_mint = Pubkey::new_unique();
-    let usdc_mint = Pubkey::new_unique();
-    create_mock_mint_account(&mut svm, invoice_mint, issuer.pubkey(), 0)?;
-    create_mock_mint_account(&mut svm, usdc_mint, issuer.pubkey(), 6)?;
+    let issuer_balance = fixture.token_amount(&fixture.issuer.usdc_account);
+    assert_eq!(issuer_balance, fixture.config.invoice_terms.purchase_price);
 
-    let (invoice_pda, _) =
-        Pubkey::find_program_address(&[b"invoice", invoice_mint.as_ref()], &program_id);
-    let (usdc_vault, _) =
-        Pubkey::find_program_address(&[b"vault", invoice_pda.as_ref()], &program_id);
-
-    let issuer_usdc = Pubkey::new_unique();
-    let lp_a_usdc = Pubkey::new_unique();
-    let lp_b_usdc = Pubkey::new_unique();
-    let debtor_usdc = Pubkey::new_unique();
-    create_mock_token_account(&mut svm, issuer_usdc, usdc_mint, issuer.pubkey(), 0)?;
-    create_mock_token_account(&mut svm, lp_a_usdc, usdc_mint, lp_a.pubkey(), 600_000)?;
-    create_mock_token_account(&mut svm, lp_b_usdc, usdc_mint, lp_b.pubkey(), 400_000)?;
-    create_mock_token_account(&mut svm, debtor_usdc, usdc_mint, debtor.pubkey(), 1_200_000)?;
-
-    let total_amount = 1_200_000;
-    let purchase_price = 1_000_000;
-
-    let list_ix = list_invoice_ix(
-        program_id,
-        &issuer,
-        invoice_pda,
-        usdc_mint,
-        usdc_vault,
-        invoice_mint,
-        total_amount,
-        purchase_price,
-        1_700_000_000,
-        4,
-    );
-    send_ix(&mut svm, list_ix, &issuer)?;
-
-    let contribute_a = contribute_ix(
-        program_id,
-        &lp_a,
-        invoice_pda,
-        lp_a_usdc,
-        usdc_vault,
-        600_000,
-    );
-    send_ix(&mut svm, contribute_a, &lp_a)?;
-    let contribute_b = contribute_ix(
-        program_id,
-        &lp_b,
-        invoice_pda,
-        lp_b_usdc,
-        usdc_vault,
-        400_000,
-    );
-    send_ix(&mut svm, contribute_b, &lp_b)?;
-
-    let invoice_after_funding = fetch_invoice(&svm, &invoice_pda);
-    assert_eq!(invoice_after_funding.total_funded_amount, purchase_price);
-    assert_eq!(invoice_after_funding.status, InvoiceStatus::Financed as u8);
-    assert_eq!(invoice_after_funding.contributor_count, 2);
-
-    let claim_ix = claim_funding_ix(
-        program_id,
-        &issuer,
-        invoice_pda,
-        issuer_usdc,
-        usdc_vault,
-    );
-    send_ix(&mut svm, claim_ix, &issuer)?;
-
-    let issuer_account = svm.get_account(&issuer_usdc).unwrap();
-    let issuer_token = SplTokenAccount::unpack(&issuer_account.data).unwrap();
-    assert_eq!(issuer_token.amount, purchase_price);
-
-    let vault_post_claim = svm.get_account(&usdc_vault).unwrap();
-    let vault_token = SplTokenAccount::unpack(&vault_post_claim.data).unwrap();
-    assert_eq!(vault_token.amount, 0);
-
-    let repay_ix = repay_and_distribute_ix(
-        program_id,
-        &debtor,
-        invoice_pda,
-        debtor_usdc,
-        usdc_vault,
-        &[lp_a_usdc, lp_b_usdc],
-    );
-    send_ix(&mut svm, repay_ix, &debtor)?;
-
-    let invoice_final = fetch_invoice(&svm, &invoice_pda);
-    assert_eq!(invoice_final.status, InvoiceStatus::Repaid as u8);
-
-    let lp_a_account = svm.get_account(&lp_a_usdc).unwrap();
-    let lp_a_token = SplTokenAccount::unpack(&lp_a_account.data).unwrap();
-    assert_eq!(lp_a_token.amount, 600_000 + 120_000);
-
-    let lp_b_account = svm.get_account(&lp_b_usdc).unwrap();
-    let lp_b_token = SplTokenAccount::unpack(&lp_b_account.data).unwrap();
-    assert_eq!(lp_b_token.amount, 400_000 + 80_000);
+    let lp_balances: Vec<u64> = fixture
+        .lps
+        .iter()
+        .map(|lp| fixture.token_amount(&lp.wallet.usdc_account))
+        .collect();
+    assert_eq!(lp_balances[0], 720_000);
+    assert_eq!(lp_balances[1], 480_000);
 
     Ok(())
 }

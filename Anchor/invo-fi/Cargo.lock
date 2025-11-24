@@ -1357,6 +1357,7 @@ dependencies = [
  "solana-message 3.0.1",
  "solana-program-runtime",
  "solana-pubkey 3.0.0",
+ "solana-sdk-ids 3.1.0",
  "solana-signer 3.0.0",
  "solana-transaction",
  "spl-token 4.0.1",

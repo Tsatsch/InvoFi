@@ -25,6 +25,7 @@ mpl-core = { version = "=0.11.1-beta.2", features = ["anchor"] }
 
 [dev-dependencies]
 litesvm = "0.8.1"
+solana-sdk-ids = "=3.1.0"
 solana-account = "=3.2.0"
 solana-instruction = "=3.1.0"
 solana-keypair = "=3.1.0"
