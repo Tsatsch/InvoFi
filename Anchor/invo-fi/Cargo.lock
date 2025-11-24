@@ -1360,6 +1360,7 @@ dependencies = [
  "solana-sdk-ids 3.1.0",
  "solana-signer 3.0.0",
  "solana-transaction",
+ "solana-transaction-error 3.0.0",
  "spl-token 4.0.1",
 ]
 

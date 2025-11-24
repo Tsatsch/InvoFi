@@ -1,13 +1,13 @@
+use crate::error::InvoiceError;
+use crate::state::invoice::{Invoice, InvoiceStatus};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount};
-use crate::state::invoice::{Invoice, InvoiceStatus};
-use crate::error::InvoiceError;
 
 #[derive(Accounts)]
 pub struct ClaimFunding<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
-    
+
     #[account(mut)]
     pub issuer_usdc_account: Account<'info, TokenAccount>,
 
@@ -24,17 +24,20 @@ pub struct ClaimFunding<'info> {
         bump,
     )]
     pub usdc_vault: Account<'info, TokenAccount>,
-    
+
     pub token_program: Program<'info, Token>,
 }
 
 pub fn handler(ctx: Context<ClaimFunding>) -> Result<()> {
     let invoice_account = ctx.accounts.invoice_account.load()?;
 
-    require!(invoice_account.status == InvoiceStatus::Financed as u8, InvoiceError::NotFunding);
+    require!(
+        invoice_account.status == InvoiceStatus::Financed as u8,
+        InvoiceError::NotFunding
+    );
 
     let amount_to_transfer = invoice_account.total_funded_amount;
-    
+
     let invoice_mint_key = invoice_account.invoice_mint.key();
     let invoice_bump = ctx.bumps.invoice_account;
     let seeds = &[
@@ -52,11 +55,14 @@ pub fn handler(ctx: Context<ClaimFunding>) -> Result<()> {
     let cpi_context = CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
         cpi_accounts,
-        signer_seeds
+        signer_seeds,
     );
     token::transfer(cpi_context, amount_to_transfer)?;
 
-    msg!("{} USDC transferred from vault to issuer.", amount_to_transfer);
+    msg!(
+        "{} USDC transferred from vault to issuer.",
+        amount_to_transfer
+    );
 
     Ok(())
 }

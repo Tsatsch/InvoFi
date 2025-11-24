@@ -8,4 +8,14 @@ pub enum InvoiceError {
     AmountTooLarge,
     #[msg("The maximum number of contributors has been reached.")]
     ContributorLimitExceeded,
+    #[msg("The purchase price cannot exceed the total amount.")]
+    InvalidPurchasePrice,
+    #[msg("The provided risk rating is out of bounds.")]
+    InvalidRiskRating,
+    #[msg("The invoice due date must be in the future.")]
+    InvalidDueDate,
+    #[msg("Contribution amount must be greater than zero.")]
+    ZeroContribution,
+    #[msg("Contributor has already participated.")]
+    DuplicateContributor,
 }

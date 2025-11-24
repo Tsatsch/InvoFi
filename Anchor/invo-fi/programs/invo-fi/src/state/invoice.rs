@@ -10,7 +10,7 @@ pub struct Invoice {
     pub due_date: i64,
     pub invoice_mint: Pubkey,
     /// dynamic funding data, how much has been funded so far
-    pub total_funded_amount: u64, 
+    pub total_funded_amount: u64,
     /// The price at which investors purchase this invoice (usually less than total_amount, allowing them to earn a return)
     pub purchase_price: u64, // the amount to be raised for financing (invoice purchase price)
     pub contributors: [Contribution; 64],
@@ -19,7 +19,7 @@ pub struct Invoice {
     pub risk_rating: u8,
     pub contributor_count: u8,
     pub status: u8,
-    
+
     // Add padding to make the account size a multiple of 8
     pub _padding: [u8; 5],
 }
@@ -34,8 +34,8 @@ pub struct Contribution {
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum InvoiceStatus {
-    Funding,      // 0
-    Financed,     // 1
-    Repaid,       // 2
-    Defaulted,    // 3
+    Funding,   // 0
+    Financed,  // 1
+    Repaid,    // 2
+    Defaulted, // 3
 }

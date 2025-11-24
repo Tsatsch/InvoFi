@@ -1,8 +1,7 @@
-
+use crate::error::InvoiceError;
+use crate::state::invoice::{Contribution, Invoice, InvoiceStatus};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount};
-use crate::state::invoice::{Invoice, InvoiceStatus, Contribution};
-use crate::error::InvoiceError;
 
 #[derive(Accounts)]
 pub struct Contribute<'info> {
@@ -31,13 +30,28 @@ pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
     let invoice_account = &mut ctx.accounts.invoice_account.load_mut()?;
 
     // 1) Basic sanity checks before taking any funds
-    require!(invoice_account.status == InvoiceStatus::Funding as u8, InvoiceError::NotFunding);
+    require!(
+        invoice_account.status == InvoiceStatus::Funding as u8,
+        InvoiceError::NotFunding
+    );
+    require!(amount > 0, InvoiceError::ZeroContribution);
 
-    let remaining_amount = invoice_account.purchase_price.checked_sub(invoice_account.total_funded_amount).unwrap();
+    let remaining_amount = invoice_account
+        .purchase_price
+        .checked_sub(invoice_account.total_funded_amount)
+        .unwrap();
     require!(amount <= remaining_amount, InvoiceError::AmountTooLarge);
-    
+
+    let existing = invoice_account.contributors[..invoice_account.contributor_count as usize]
+        .iter()
+        .any(|entry| entry.contributor == ctx.accounts.contributor.key());
+    require!(!existing, InvoiceError::DuplicateContributor);
+
     let contributor_idx = invoice_account.contributor_count as usize;
-    require!(contributor_idx < invoice_account.contributors.len(), InvoiceError::ContributorLimitExceeded);
+    require!(
+        contributor_idx < invoice_account.contributors.len(),
+        InvoiceError::ContributorLimitExceeded
+    );
 
     // 2) Move USDC from the contributor to the invoice vault (escrow)
     let cpi_accounts = token::Transfer {
@@ -49,13 +63,19 @@ pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
     token::transfer(cpi_context, amount)?;
 
     // 3) Persist contribution on-chain
-    invoice_account.total_funded_amount = invoice_account.total_funded_amount.checked_add(amount).unwrap();
-    
+    invoice_account.total_funded_amount = invoice_account
+        .total_funded_amount
+        .checked_add(amount)
+        .unwrap();
+
     invoice_account.contributors[contributor_idx] = Contribution {
         contributor: ctx.accounts.contributor.key(),
         amount,
     };
-    invoice_account.contributor_count += 1;
+    invoice_account.contributor_count = invoice_account
+        .contributor_count
+        .checked_add(1)
+        .ok_or(InvoiceError::ContributorLimitExceeded)?;
 
     // 4) If we’ve reached the purchase price, mark the invoice as financed
     if invoice_account.total_funded_amount == invoice_account.purchase_price {
@@ -69,6 +89,6 @@ pub fn handler(ctx: Context<Contribute>, amount: u64) -> Result<()> {
         invoice_account.total_funded_amount,
         invoice_account.purchase_price
     );
-    
+
     Ok(())
 }

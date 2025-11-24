@@ -1,6 +1,10 @@
+use crate::{
+    constants::{MAX_RISK_RATING, MIN_RISK_RATING},
+    error::InvoiceError,
+    state::invoice::{Invoice, InvoiceStatus},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::state::invoice::{Invoice, InvoiceStatus};
 
 #[derive(Accounts)]
 pub struct ListInvoice<'info> {
@@ -33,18 +37,30 @@ pub struct ListInvoice<'info> {
     /// Mint of the invoice NFT that represents this receivable
     pub invoice_mint: Account<'info, Mint>,
 
+    pub clock: Sysvar<'info, Clock>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 pub fn handler(
-    ctx: Context<ListInvoice>, 
+    ctx: Context<ListInvoice>,
     total_amount: u64,
     purchase_price: u64,
     due_date: i64,
-    risk_rating: u8
+    risk_rating: u8,
 ) -> Result<()> {
+    require!(
+        purchase_price <= total_amount,
+        InvoiceError::InvalidPurchasePrice
+    );
+    require!(
+        risk_rating >= MIN_RISK_RATING && risk_rating <= MAX_RISK_RATING,
+        InvoiceError::InvalidRiskRating
+    );
+    let now = ctx.accounts.clock.unix_timestamp;
+    require!(due_date > now, InvoiceError::InvalidDueDate);
+
     // Initialize invoice state in a single place
     let mut invoice_account = ctx.accounts.invoice_account.load_init()?;
 
@@ -58,7 +74,10 @@ pub fn handler(
     invoice_account.contributor_count = 0;
     // contributors array is zeroed by default; no extra init required
 
-    msg!("Invoice {} listed for funding!", ctx.accounts.invoice_account.key());
+    msg!(
+        "Invoice {} listed for funding!",
+        ctx.accounts.invoice_account.key()
+    );
 
     Ok(())
 }

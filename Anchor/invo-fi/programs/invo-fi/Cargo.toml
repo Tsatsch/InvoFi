@@ -34,6 +34,7 @@ solana-program-runtime = "=3.0.10"
 solana-pubkey = "=3.0.0"
 solana-signer = "=3.0.0"
 solana-transaction = "=3.0.2"
+solana-transaction-error = "=3.0.0"
 spl-token = "=4.0.1"
 litesvm-token = "0.8.1"
 

@@ -3,8 +3,8 @@ use instructions::*;
 
 declare_id!("D7aLtLd2LNkZrwzmGe6sfs9YjRbLh6fiymtUmCnYHn84");
 
-mod constants;
-mod error;
+pub mod constants;
+pub mod error;
 mod instructions;
 pub mod state;
 
@@ -25,12 +25,18 @@ pub mod invo_fi {
     }
 
     pub fn list_invoice(
-        ctx: Context<ListInvoice>, 
+        ctx: Context<ListInvoice>,
         total_amount: u64,
         purchase_price: u64,
         due_date: i64,
-        risk_rating: u8
+        risk_rating: u8,
     ) -> Result<()> {
-        instructions::list_invoice::handler(ctx, total_amount, purchase_price, due_date, risk_rating)
+        instructions::list_invoice::handler(
+            ctx,
+            total_amount,
+            purchase_price,
+            due_date,
+            risk_rating,
+        )
     }
 }

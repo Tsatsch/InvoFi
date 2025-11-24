@@ -1,13 +1,13 @@
+use crate::error::InvoiceError;
+use crate::state::invoice::{Invoice, InvoiceStatus};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount};
-use crate::state::invoice::{Invoice, InvoiceStatus};
-use crate::error::InvoiceError;
 
 #[derive(Accounts)]
 pub struct RepayAndDistribute<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    
+
     #[account(mut)]
     pub payer_usdc_account: Account<'info, TokenAccount>,
 
@@ -17,7 +17,7 @@ pub struct RepayAndDistribute<'info> {
         bump
     )]
     pub invoice_account: AccountLoader<'info, Invoice>,
-    
+
     #[account(
         mut,
         seeds = [b"vault", invoice_account.key().as_ref()],
@@ -36,15 +36,24 @@ pub fn handler(ctx: Context<RepayAndDistribute>) -> Result<()> {
         to: ctx.accounts.usdc_vault.to_account_info(),
         authority: ctx.accounts.payer.to_account_info(),
     };
-    let cpi_context_repay = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts_repay);
+    let cpi_context_repay = CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        cpi_accounts_repay,
+    );
     token::transfer(cpi_context_repay, total_amount_to_repay)?;
 
     // 2) Copy the invoice data we need and release the loader borrow
     let (total_profit, contributor_count, purchase_price, contributors) = {
         let invoice = ctx.accounts.invoice_account.load()?;
-        require!(invoice.status == InvoiceStatus::Financed as u8, InvoiceError::NotFunding);
+        require!(
+            invoice.status == InvoiceStatus::Financed as u8,
+            InvoiceError::NotFunding
+        );
         (
-            invoice.total_amount.checked_sub(invoice.purchase_price).unwrap(),
+            invoice
+                .total_amount
+                .checked_sub(invoice.purchase_price)
+                .unwrap(),
             invoice.contributor_count as usize,
             invoice.purchase_price,
             invoice.contributors,
@@ -53,12 +62,19 @@ pub fn handler(ctx: Context<RepayAndDistribute>) -> Result<()> {
 
     // We pass CPI accounts exclusively via remaining_accounts to avoid lifetime issues.
     // Layout: [0] token_program, [1] vault (from), [2] invoice PDA (authority), [3..] contributor ATAs
-    require!(ctx.remaining_accounts.len() == contributor_count + 3, InvoiceError::ContributorLimitExceeded);
+    require!(
+        ctx.remaining_accounts.len() == contributor_count + 3,
+        InvoiceError::ContributorLimitExceeded
+    );
 
     // 3) Prepare signer seeds for the invoice PDA
     let invoice_mint_key = ctx.accounts.invoice_account.load()?.invoice_mint.key();
     let invoice_bump = ctx.bumps.invoice_account;
-    let seeds = &[ b"invoice".as_ref(), invoice_mint_key.as_ref(), &[invoice_bump] ];
+    let seeds = &[
+        b"invoice".as_ref(),
+        invoice_mint_key.as_ref(),
+        &[invoice_bump],
+    ];
     let signer_seeds = &[&seeds[..]];
 
     // 4) Fan-out distribution: principal + pro-rata profit
@@ -67,7 +83,10 @@ pub fn handler(ctx: Context<RepayAndDistribute>) -> Result<()> {
     let authority_ai = ctx.remaining_accounts[2].clone();
 
     // Clone the contributor ATAs to owned AccountInfos, so we can use them outside of the ctx borrow
-    let contributor_accounts: Vec<AccountInfo> = ctx.remaining_accounts[3..(3 + contributor_count)].iter().cloned().collect();
+    let contributor_accounts: Vec<AccountInfo> = ctx.remaining_accounts[3..(3 + contributor_count)]
+        .iter()
+        .cloned()
+        .collect();
 
     let mut total_profit_distributed: u64 = 0;
     for i in 0..contributor_count {
@@ -79,8 +98,10 @@ pub fn handler(ctx: Context<RepayAndDistribute>) -> Result<()> {
             total_profit.checked_sub(total_profit_distributed).unwrap()
         } else {
             let share = (total_profit as u128)
-                .checked_mul(contributor_data.amount as u128).unwrap()
-                .checked_div(purchase_price as u128).unwrap();
+                .checked_mul(contributor_data.amount as u128)
+                .unwrap()
+                .checked_div(purchase_price as u128)
+                .unwrap();
             total_profit_distributed += share as u64;
             share as u64
         };
